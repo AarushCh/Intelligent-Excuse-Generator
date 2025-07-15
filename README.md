@@ -172,4 +172,4 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 ## 🙏 Credits
 
-**Made with ❤️ by Ch Aarush Udbhav**
+**Made by Ch Aarush Udbhav**
