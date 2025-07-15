@@ -26,7 +26,7 @@ from apscheduler.triggers.date import DateTrigger
 from dotenv import load_dotenv
 
 
-load_dotenv()
+load_dotenv("C:\\Users\\aarus\\Desktop\\Others\\Education\\Internship\\LaunchED Global AI Internship\\Ch Aarush Udbhav - Major Project\\Ch Aarush Udbhav - Major Project\\Intelligent-Excuse-Generator\\unused\\.env")
 
 apology_history: list[dict] = []
 favorite_apologies: list[str] = []
