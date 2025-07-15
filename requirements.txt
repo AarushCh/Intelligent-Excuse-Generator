@@ -1,0 +1,11 @@
+fastapi
+uvicorn
+jinja2
+python-dotenv
+openai>=1.0.0
+apscheduler
+pygame
+smtplib
+email
+shelve
+pydantic

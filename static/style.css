@@ -1,0 +1,373 @@
+body {
+  font-family: 'Inter', 'Segoe UI', sans-serif;
+  background: linear-gradient(to bottom right, #ffffff, #67a1b4);
+  color: #000;
+  padding: 30px;
+  text-align: center;
+}
+
+.container {
+  background: #fff;
+  padding: 25px;
+  border-radius: 15px;
+  box-shadow: 0 0 30px rgba(0,0,0,0.1);
+  max-width: 600px;
+  margin: auto;
+}
+
+input, select, textarea {
+  display: block;
+  margin: 10px auto;
+  width: 80%;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  background-color: #fff;
+  color: #000;
+  text-align: left;
+}
+
+label {
+  display: block;
+  margin-top: 10px;
+  font-weight: 500;
+  text-align: left;
+  width: 80%;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+ul {
+  list-style-type: square;
+  padding: 10px;
+  text-align: left;
+  max-width: 90%;
+  margin: 10px auto;
+}
+
+ul li {
+  text-align: center;
+  margin-bottom: 5px;
+}
+
+button:not(.round-toggle) {
+  padding: 12px 20px;
+  min-width: 220px;
+  max-width: 90%;
+  height: auto;
+  margin: 12px auto;
+  border-radius: 8px;
+  text-align: center;
+  font-size: 15px;
+  font-weight: bold;
+  border: 5px solid #030303;
+  display: block;
+  cursor: pointer;
+  background: #ADD8E6;
+  color: #fff;
+  transition: all 0.25s ease;
+  box-shadow: none;
+}
+
+button:not(.round-toggle):hover {
+  background: #90e0ef;
+  transform: scale(1.03);
+}
+
+button.teal {
+  background-color: #00b4d8;
+  color: white;
+}
+button.orange {
+  background-color: orange;
+  color: white;
+}
+button.red {
+  background-color: red;
+  color: white;
+}
+
+#downloadLink {
+  display: none;
+  margin-top: 10px;
+  text-align: center;
+}
+
+/* Round Icon Buttons (📜 ⭐ ❤️) */
+.toggle-btns {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.round-toggle {
+  width: 50px;
+  height: 50px;
+  min-width: 50px !important;
+  min-height: 50px;
+  background-color: #90e0ef;
+  border: none;
+  border-radius: 50%;
+  font-size: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  padding: 0;
+  margin: 0;
+}
+
+.round-toggle:hover {
+  background-color: #caf0f8;
+  transform: scale(1.2);
+}
+
+.round-toggle.bouncing {
+  animation: bounce 0.25s ease-in-out;
+}
+
+.toggle-box {
+  display: none;
+  margin-top: 10px;
+  background: #f3f3f3;
+  padding: 15px;
+  border-radius: 10px;
+  text-align: center;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.inline-label {
+  display: inline-block;
+  margin-top: 10px;
+  font-weight: 500;
+}
+
+.watermark {
+  position: fixed;
+  bottom: 10px;
+  right: 15px;
+  font-size: 12px;
+  color: #888;
+  opacity: 0.4;
+}
+
+/* Theme Toggle Switch */
+.theme-switch-wrapper {
+  position: absolute;
+  top: 15px;
+  right: 20px;
+  z-index: 1001;
+}
+
+.theme-switch {
+  display: inline-block;
+  height: 34px;
+  position: relative;
+  width: 60px;
+}
+
+.theme-switch input {
+  display: none;
+}
+
+.slider {
+  background-color: #ccc;
+  bottom: 0;
+  cursor: pointer;
+  left: 0;
+  position: absolute;
+  right: 0;
+  top: 0;
+  transition: .4s;
+  border-radius: 34px;
+}
+
+.slider:before {
+  background-color: white;
+  bottom: 4px;
+  content: "";
+  height: 26px;
+  left: 4px;
+  position: absolute;
+  transition: .4s;
+  width: 26px;
+  border-radius: 50%;
+}
+
+input:checked + .slider {
+  background-color: #4c68ff;
+}
+
+input:checked + .slider:before {
+  transform: translateX(26px);
+}
+
+/* Dark Mode Overrides */
+body.dark {
+  background: linear-gradient(to bottom right, #0d1b2a, #1b263b);
+  color: #f5f5f5;
+}
+
+body.dark .container {
+  background: #1b263b;
+  box-shadow: 0 0 20px rgba(0,0,0,0.3);
+}
+
+body.dark input,
+body.dark select,
+body.dark textarea {
+  background-color: #415a77;
+  color: #f5f5f5;
+  border: 1px solid #999;
+}
+
+body.dark button,
+body.dark .round-toggle {
+  background-color: #415a77;
+  color: white;
+}
+
+body.dark .round-toggle:hover,
+body.dark button:hover {
+  background-color: #334f6d;
+}
+
+body.dark .toggle-box {
+  background-color: #0d1b2a;
+}
+
+body.dark .slider {
+  background-color: #666;
+}
+
+body.dark input:checked + .slider {
+  background-color: #00b4d8;
+}
+
+/* Animations */
+@keyframes bounce {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeOut {
+  from { opacity: 1; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(-10px); }
+}
+
+#excuseOut strong,
+#apologyOut strong {
+  color: #555;
+  font-size: 13px;
+}
+
+body.dark #excuseOut strong,
+body.dark #apologyOut strong {
+  color: #ccc;
+}
+
+.theme-switch-label {
+  text-align: center;
+  margin-top: 6px;
+  font-weight: bold;
+  font-size: 14px;
+  color: #333;
+}
+body.dark .theme-switch-label {
+  color: #f5f5f5;
+  border: 5px solid #ddd2d2;
+
+}
+
+.template-popup {
+  position: fixed;
+  top: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #fff;
+  color: #000;
+  border-radius: 12px;
+  box-shadow: 0 0 20px rgba(0,0,0,0.3);
+  width: 90%;
+  max-width: 500px;
+  z-index: 9999;
+  padding: 20px;
+  display: none;
+}
+
+.small-round-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: #dc3545; /* red */
+  color: white;
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+
+.small-round-btn:hover {
+  background: #c82333;
+}
+
+body.dark .small-round-btn {
+  background: #8b1e2e;
+}
+
+body.dark .small-round-btn:hover {
+  background: #a22633;
+}
+
+
+body.dark .template-popup {
+  background: #1b263b;
+  color: #fff;
+}
+.popup-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.template-tabs {
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 15px;
+}
+.template-tabs button {
+  padding: 6px 12px;
+  border: none;
+  background: #00b4d8;
+  color: white;
+  font-weight: bold;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.template-list button {
+  display: block;
+  width: 100%;
+  margin: 6px 0;
+  padding: 8px 12px;
+  background: #caf0f8;
+  color: #000;
+  border: none;
+  border-radius: 6px;
+  text-align: left;
+  cursor: pointer;
+}
+body.dark .template-list button {
+  background: #415a77;
+  color: #fff;
+}

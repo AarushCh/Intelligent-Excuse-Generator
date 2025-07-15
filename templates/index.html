@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Intelligent Excuse Generator</title>
+
+  <!-- ─── ASSETS ─── -->
+  <link rel="icon" type="image/png" href="/static/favicon.png" />
+  <link rel="manifest" href="/static/manifest.json" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Rajdhani:wght@500&display=swap"
+    rel="stylesheet"
+  />
+  <link rel="stylesheet" href="/static/style.css" />
+
+  <!-- ─── SERVICE‑WORKER ─── -->
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () =>
+        navigator.serviceWorker
+          .register("/static/service-worker.js")
+          .catch(console.error)
+      );
+    }
+  </script>
+
+  <!-- ─── INLINE EXTRA CSS (kept here for quick edits) ─── -->
+  <style>
+    /* 1. COLOUR TOKENS ─────────────────────────────────────────────── */
+    :root {
+      --light-bg:   #caf0f8;
+      --light-panel:#90e0ef;
+      --light-accent:#00b4d8;
+      --light-text:#000;
+
+      --dark-bg:    #0d1b2a;
+      --dark-panel: #1b263b;
+      --dark-accent:#415a77;
+      --dark-text:  #f5f5f5;
+    }
+
+    /* 2. BASE / THEME ──────────────────────────────────────────────── */
+    *            { box-sizing: border-box; }
+    body         { font-family: "Inter", sans-serif;
+                   background: var(--light-bg);
+                   color: var(--light-text);
+                   margin: 0; min-height: 100vh;
+                   transition: background 0.3s, color 0.3s; }
+    body.dark    { background: var(--dark-bg); color: var(--dark-text); }
+
+    /* fade helper */
+    @keyframes fadeSlideIn { from { opacity: 0; transform: translateY(12px); }
+                             to   { opacity: 1; transform: translateY(0); } }
+    .fade-in { animation: fadeSlideIn 0.45s ease-out; }
+
+    /* 3. CYBER TITLE ──────────────────────────────────────────────── */
+    .typewriter-wrap {
+      display: flex; justify-content: center; align-items: center;
+      height: 60px; overflow: hidden; position: relative;
+    }
+    .cyber-title{
+      font-family:"Rajdhani",sans-serif;
+      font-size:28px;
+      color:var(--light-text);               /* black in light mode      */
+      white-space:nowrap;overflow:hidden;
+      border-right:2px solid rgba(255,255,255,.7);
+      animation:
+        typing     2.8s steps(75,end) forwards,
+        blink-stop .8s step-end 3;
+    }
+    body.dark .cyber-title{color:var(--dark-text);}
+
+    @keyframes blink-stop{50%{border-color:transparent}}
+    @keyframes typing    {from{width:0}to{width:100%}}
+
+    @keyframes typing { from { width: 0; } to { width: 100%; } }
+    @keyframes blink  { 50% { border-color: transparent; } }
+    @keyframes blink-cursor {
+      50% { border-color: transparent; }
+    }
+
+    /* 4. CARD & FORM CONTROLS ─────────────────────────────────────── */
+    .container {
+      background: #fff; max-width: 650px; margin: 60px auto;
+      padding: 25px 30px; border-radius: 16px;
+      box-shadow: 0 0 30px rgba(0, 0, 0, 0.08);
+      transition: background 0.3s;
+    }
+    body.dark .container { background: var(--dark-panel); }
+
+    input, select {
+      width: 100%; padding: 10px 12px; margin: 8px 0 16px;
+      border: 1px solid #ccc; border-radius: 8px;
+      background: #fff; color: #000; transition: 0.3s;
+    }
+    body.dark input, body.dark select {
+      background: #23354a; color: #fff;
+    }
+
+    button {
+      padding: 10px 15px; margin: 6px 0;
+      border: none; border-radius: 8px; cursor: pointer;
+      font-weight: 600; color: #fff;
+      background: var(--light-accent); transition: background 0.2s;
+    }
+    button:hover       { filter: brightness(0.9); }
+    body.dark button   { background: var(--dark-accent); }
+
+    /* round icon buttons */
+    .toggle-btns {
+      display: flex; justify-content: center; gap: 12px; margin: 12px 0;
+    }
+    .round-toggle {
+      width: 50px; height: 50px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 24px; border-radius: 50%;
+      background: #ADD8E6; transition: background 0.2s;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    .round-toggle:hover      { background: #87c0d6; }
+    body.dark .round-toggle  { background: var(--dark-accent); color: #fff; }
+
+    @keyframes bounce { 50% { transform: scale(1.15); } }
+    .round-toggle.bouncing { animation: bounce 0.2s; }
+
+    /* slide drawers */
+    .toggle-box {
+      display: none; padding: 15px; margin-top: 10px;
+      background: #f3f3f3; border-radius: 10px;
+      animation: fadeSlideIn 0.4s ease-out;
+    }
+    body.dark .toggle-box { background: var(--dark-panel); }
+
+    /* 5. RANKINGS (excuse & apology) ─────────────────────────────── */
+    #rankingsList, #apolTopList {
+      list-style: none; margin: 0 auto; padding: 0; max-width: 90%;
+      display: flex; flex-direction: column; align-items: center;
+    }
+    #rankingsList li, #apolTopList li {
+      width: 100%; max-width: 600px;
+      background: #f8f9fa; color: #000;
+      padding: 8px 12px; margin: 6px 0; border-radius: 8px;
+      display: flex; align-items: center; gap: 10px;
+      transition: transform 0.18s, box-shadow 0.18s;
+    }
+    body.dark #rankingsList li,
+    body.dark #apolTopList li   { background: #e3e3e3; color: #000; }
+
+    #rankingsList li:hover,
+    #apolTopList li:hover      {
+      transform: scale(1.03);
+      box-shadow: 0 0 6px rgba(0, 0, 0, 0.18);
+    }
+    .count-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 36px;
+      height: 28px;
+      padding: 0 10px;
+      white-space: nowrap;
+      border-radius: 20px;
+      background: #007bff;
+      color: #fff;
+      font-weight: bold;
+      font-size: 13px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    @keyframes pop { 40% { transform: scale(1.15); } }
+    .rank-up { animation: pop 0.45s ease-in-out;
+               box-shadow: 0 0 10px rgba(0, 255, 255, 0.3); }
+
+    /* 6. LOGO & WATERMARK ─────────────────────────────────────────── */
+    .proof-logo {
+      position: fixed; bottom: 10px; left: 10px;
+      width: 80px; 
+      z-index: 999;
+    }
+    .proof-watermark {
+      position: fixed; bottom: 20px; right: 20px;
+      padding: 6px 16px; border-radius: 999px;
+      font-size: 14px; font-weight: bold;
+      backdrop-filter: blur(4px);
+      background: rgba(255, 255, 255, 0.75);
+      color: rgba(0, 0, 0, 0.6);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+      z-index: 1000; text-align: right;
+    }
+    body.dark .proof-watermark {
+      background: rgba(0, 0, 0, 0.4);
+      color: rgba(255, 255, 255, 0.6);
+    }
+    .proof-timestamp {
+      position: fixed; bottom: 5px; left: 20px;
+      font-size: 11px; opacity: 0.5;
+    }
+  </style>
+</head>
+
+<body>
+<!-- ═══════════ DARK‑MODE TOGGLE ═══════════ -->
+<div class="theme-switch-wrapper">
+  <label class="theme-switch">
+    <input type="checkbox" id="themeToggle" onchange="toggleDarkModeSwitch()" />
+    <span class="slider"></span>
+  </label>
+  <div id="themeLabel" class="theme-switch-label">🌞 Light Mode</div>
+</div>
+
+<!-- ═══════════ MAIN CARD ══════════════════ -->
+<div class="container">
+  <!-- Cyber title -->
+  <div class="typewriter-wrap">
+    <h2 class="cyber-title">Intelligent Excuse Generator</h2>
+  </div>
+
+  <!-- ───────── EXCUSE FORM ───────── -->
+  <label>Scenario:</label>
+  <input id="scenario" placeholder="Type your excuse scenario here…" />
+  <ul id="memorySuggest"
+      style="display:none;margin:4px 0 8px;padding:6px 10px;
+             background:#f1f1f1;border-radius:8px;font-size:14px"></ul>
+
+  <label>Urgency:</label>
+  <select id="urgency">
+    <option value="low">Low</option><option value="medium">Medium</option>
+    <option value="high">High</option><option value="critical">Critical</option>
+  </select>
+
+  <label>Excuse Style:</label>
+  <select id="excuseStyle">
+    <option value="professional">Professional</option>
+    <option value="creative">Creative</option>
+  </select>
+
+  <label>Output Language:</label>
+  <select id="language">
+    <option value="en">English</option><option value="hi">Hindi</option>
+    <option value="fr">French</option><option value="es">Spanish</option>
+    <option value="de">German</option>
+  </select>
+
+  <button class="teal" onclick="getExcuse()">Generate Excuse</button>
+  <p id="excuseOut"></p>
+  <p id="translatedOut"></p>
+  <button class="teal" onclick="playVoice()">🔊 Speak</button>
+
+  <!-- round helpers -->
+  <div class="toggle-btns">
+    <button class="round-toggle" onclick="toggleBox('historyBox',this)">📜</button>
+    <button class="round-toggle" onclick="toggleBox('favoritesBox',this)">⭐</button>
+    <button class="round-toggle" onclick="saveFavorite()">❤️</button>
+    <button class="round-toggle" onclick="toggleBox('calendarBox',this)">📅</button>
+    <button class="round-toggle" onclick="toggleBox('rankingsBox',this)">🏆</button>
+  </div>
+
+  <!-- drawers -->
+  <div id="historyBox"   class="toggle-box">
+    <h4>📜 History</h4><ul id="historyList"></ul>
+  </div>
+  <div id="favoritesBox" class="toggle-box">
+    <h4>⭐ Favourites</h4><ul id="favoritesList"></ul>
+  </div>
+  <div id="calendarBox"  class="toggle-box">
+    <h4>📅 Excuse Calendar</h4><ul id="calendarList"></ul>
+  </div>
+  <div id="rankingsBox"  class="toggle-box">
+    <h4 style="display:flex;justify-content:space-between;align-items:center;margin:0">
+      <span>🏆 Top Excuses (AI Rankings)</span>
+      <button class="small-round-btn" onclick="clearTopExcuses()" title="Clear">🗑️</button>
+    </h4>
+    <ul id="rankingsList"></ul>
+  </div>
+
+  <hr />
+
+  <!-- ───────── APOLOGY FORM ───────── -->
+  <label>Apology context:</label>
+  <input id="apologyContext" placeholder="e.g., I forgot my friend's birthday" />
+
+  <label>Tone:</label>
+  <select id="tone">
+    <option>Emotional</option><option>Formal</option><option>Casual</option>
+  </select>
+
+  <label>Type:</label>
+  <select id="messageType">
+    <option>Short</option><option>Long</option>
+  </select>
+
+  <label>Style:</label>
+  <select id="apologyStyle">
+    <option>Regular</option><option>Guilt Tripping</option>
+  </select>
+
+  <button class="teal" onclick="generateApology()">Generate Apology</button>
+  <button onclick="showGuiltScore()">🧠 Guilt Meter</button>
+  <button class="teal" onclick="playApologyVoice()">🔊 Speak</button>
+
+  <div class="toggle-btns">
+    <button class="round-toggle" onclick="toggleBox('apolHistoryBox',this)">📜</button>
+    <button class="round-toggle" onclick="toggleBox('apolFavBox',this)">⭐</button>
+    <button class="round-toggle" onclick="saveApologyFavorite()">❤️</button>
+    <button class="round-toggle" onclick="toggleBox('apolCalBox',this)">📅</button>
+    <button class="round-toggle" onclick="toggleBox('apolTopBox',this)">🏆</button>
+  </div>
+
+  <p id="apologyOut"></p>
+
+  <!-- apology drawers -->
+  <div id="apolHistoryBox" class="toggle-box">
+    <h4>📜 Apology History</h4><ul id="apolHistoryList"></ul>
+  </div>
+  <div id="apolFavBox" class="toggle-box">
+    <h4>⭐ Favourite Apologies</h4><ul id="apolFavList"></ul>
+  </div>
+  <div id="apolCalBox" class="toggle-box">
+    <h4>📅 Apology Calendar</h4><ul id="apolCalList"></ul>
+  </div>
+  <div id="apolTopBox" class="toggle-box">
+    <h4 style="display:flex;justify-content:space-between;align-items:center;margin:0">
+      <span>🏆 Top Apologies (AI Rankings)</span>
+      <button class="small-round-btn" onclick="clearTopApologies()" title="Clear">🗑️</button>
+    </h4>
+    <ul id="apolTopList"></ul>
+  </div>
+
+  <!-- tone adjuster + autocomplete -->
+  <div style="margin-top: 20px">
+    <label>Adjust Tone:</label>
+    <select id="adjustTone">
+      <option value="">Pick tone…</option>
+      <option value="empathetic">Empathetic</option>
+      <option value="firm">Firm</option>
+      <option value="formal">Formal</option>
+      <option value="casual">Casual</option>
+    </select>
+    <button onclick="applyTone()">🎨 Apply</button>
+  </div>
+
+  <div style="margin-top: 12px">
+    <label>Start Apology:</label>
+    <input id="startApology" placeholder="e.g., Sorry I missed it…" />
+    <button onclick="completeApology()">🤖 Auto‑Complete</button>
+  </div>
+
+  <hr />
+
+  <!-- ───────── SCHEDULER / EMERGENCY ───────── -->
+  <h4>📅 Schedule Mail</h4>
+  <label>Date:</label><input type="date" id="scheduleDate" />
+  <label>Time:</label><input type="time" id="scheduleTime" />
+  <label>Recipients (optional):</label>
+  <input id="scheduleRecipients" placeholder="a@b.com, c@d.com" />
+  <button class="orange" onclick="scheduleEmergency()">⏰ Schedule</button>
+
+  <hr />
+
+  <label>E‑Mail Recipients:</label>
+  <input id="recipientEmail" placeholder="a@b.com, c@d.com" />
+  <button class="red" onclick="triggerEmergency()">🚨 EMERGENCY</button>
+
+  <button class="teal" onclick="generateScreenshot()">📸 Screenshot</button>
+  <img id="proofImg" style="display:none;margin:10px auto;max-width:90%" />
+  <a id="downloadLink" download="proof.png">⬇️ Download</a>
+</div>
+
+<!-- watermark + logo -->
+<img class="proof-logo" src="/static/logo.png" alt="logo" />
+<p class="proof-watermark">Ch Aarush Udbhav</p>
+<p class="proof-timestamp" id="timestamp"></p>
+<audio id="clickSound" src="/static/click.mp3" preload="auto"></audio>
+
+<!-- ═══════════ JS LOGIC ══════════════════ -->
+<script>
+  /* ——— state holders ——— */
+  let prevRanks = [];
+  let prevApologyRanks = [];
+
+  /* ——— helpers ——— */
+  function toggleBox(id, btn) {
+    const el = document.getElementById(id);
+    clickSound.play();
+    btn.classList.add("bouncing");
+    setTimeout(() => btn.classList.remove("bouncing"), 200);
+
+    document.querySelectorAll(".toggle-box").forEach((b) => {
+      if (b.id !== id) b.style.display = "none";
+    });
+
+    if (el.style.display === "block") {
+      el.style.animation = "fadeOut 0.3s";
+      setTimeout(() => (el.style.display = "none"), 280);
+    } else {
+      el.style.display = "block";
+      el.style.animation = "fadeSlideIn 0.4s";
+
+      if (id === "historyBox") loadHistory();
+      if (id === "favoritesBox") loadFavorites();
+      if (id === "rankingsBox") loadRankings();
+      if (id === "calendarBox") loadCalendar();
+      if (id === "apolHistoryBox") loadApologyHistory();
+      if (id === "apolFavBox") loadApologyFavorites();
+      if (id === "apolCalBox") loadApologyCalendar();
+      if (id === "apolTopBox") loadTopApologies();
+    }
+  }
+
+  /* ───────── EXCUSES ───────── */
+  function getExcuse() {
+    const body = {
+      scenario: scenario.value,
+      urgency: urgency.value,
+      language: language.value,
+      style: excuseStyle.value,
+    };
+
+    fetch("/api/excuse", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    })
+      .then((r) => r.json())
+      .then((o) => {
+        const now = new Date().toLocaleString();
+        excuseOut.innerHTML = `<strong>${now}</strong><br>${o.english}`;
+        translatedOut.innerText =
+          language.value !== "en" ? "Translation: " + o.translated : "";
+      })
+      .catch(() => alert("Failed"));
+  }
+
+  function playVoice() {
+    speechSynthesis.speak(new SpeechSynthesisUtterance(excuseOut.innerText));
+  }
+
+  /* ───────── APOLOGIES ───────── */
+  function generateApology() {
+    const body = {
+      context: apologyContext.value,
+      tone: tone.value,
+      type: messageType.value,
+      style: apologyStyle.value,
+      language: language.value,
+    };
+
+    fetch("/api/apology", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    })
+      .then((r) => r.json())
+      .then((o) => {
+        const now = new Date().toLocaleString();
+        apologyOut.innerHTML = `<strong>${now}</strong><br>${o.message}`;
+        translatedOut.innerText =
+          language.value !== "en" ? "Translation: " + o.translated : "";
+      })
+      .catch(() => alert("Failed"));
+  }
+
+  function playApologyVoice() {
+    speechSynthesis.speak(
+      new SpeechSynthesisUtterance(apologyOut.innerText)
+    );
+  }
+
+  /* — tone adjusters — */
+  function adjustTone() {
+    const txt = apologyOut.innerText.trim();
+    const tonePrompt = prompt("Enter tone (e.g., empathetic, firm, formal):");
+    if (!txt || !tonePrompt) return;
+
+    fetch("/api/adjust-tone", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: txt, tone: tonePrompt }),
+    })
+      .then((r) => r.json())
+      .then((d) => (apologyOut.innerText = d.adjusted || "Error"));
+  }
+
+  function applyTone(){
+    const toneSel = document.getElementById("adjustTone").value;
+    const text    = document.getElementById("apologyOut").innerText.trim();
+    if(!toneSel || !text) return alert("Select tone and generate apology first!");
+
+    fetch("/api/adjust-tone",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({text, tone:toneSel})
+    })
+    .then(r=>r.json())
+    .then(d => {
+      const final = d.adjusted || d.revised || "❌ Error";
+      apologyOut.innerText = final;
+      saveToApologyHistory(final);
+    });
+  }
+
+  function completeApology() {
+    const start = startApology.value.trim();
+    if (!start) return alert("Enter the start of your apology.");
+
+    fetch("/api/complete-apology", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        start,
+        tone: document.getElementById("adjustTone").value,
+      }),
+    })
+      .then((r) => r.json())
+      .then((d) => {
+        const final = d.completed || "Error";
+        apologyOut.innerText = final;
+        saveToApologyHistory(final);
+      });
+  }
+
+  /* — favourites — */
+  function saveFavorite() {
+    fetch("/api/favorite", { method: "POST" })
+      .then((r) => r.json())
+      .then((d) => alert(d.message));
+  }
+  function saveApologyFavorite() {
+    const cur = apologyOut.innerText.trim();
+    if (!cur) return alert("Nothing to save");
+
+    fetch("/api/apology-favorite", { method: "POST" })
+      .then(r => r.json())
+      .then(d => alert(d.message || "Done"));
+  }
+
+  /* — list loaders — */
+  const loadHistory = () =>
+    fetch("/api/history")
+      .then((r) => r.json())
+      .then(
+        (d) =>
+          (historyList.innerHTML = d.history
+            .map((i) => `<li><strong>${i.time}</strong><br>${i.text}</li>`)
+            .join(""))
+      );
+
+  const loadFavorites = () =>
+    fetch("/api/favorites")
+      .then((r) => r.json())
+      .then(
+        (d) =>
+          (favoritesList.innerHTML = d.favorites
+            .map((t) => `<li>${t}</li>`)
+            .join(""))
+      );
+
+  function loadRankings() {
+    fetch("/api/rankings")
+      .then((r) => r.json())
+      .then((data) => {
+        if (!data.length) {
+          rankingsList.innerHTML =
+            "<p style='text-align:center;color:#666;font-style:italic'>No top excuses yet.</p>";
+          return;
+        }
+
+        rankingsList.innerHTML = "";
+        data.forEach((item, idx) => {
+          const li = document.createElement("li");
+          li.innerHTML = `<span class="count-badge">🧠${item.score}</span> ${
+            ["🥇", "🥈", "🥉"][idx] || "🎖"
+          } ${item.text}`;
+
+          const prevIndex = prevRanks.findIndex((p) => p.text === item.text);
+          if (prevIndex !== -1 && idx < prevIndex) li.classList.add("rank-up");
+          rankingsList.appendChild(li);
+        });
+        prevRanks = data;
+      });
+  }
+
+  function loadApologyHistory() {
+    fetch("/api/apology-history")
+      .then((r) => r.json())
+      .then(
+        (d) =>
+          (apolHistoryList.innerHTML = d.history
+            .map((i) => `<li><strong>${i.time}</strong><br>${i.text}</li>`)
+            .join(""))
+      );
+  }
+
+  function loadApologyFavorites() {
+    fetch("/api/apology-favorites")
+      .then((r) => r.json())
+      .then(
+        (d) =>
+          (apolFavList.innerHTML = d.favorites
+            .map((t) => `<li>${t}</li>`)
+            .join(""))
+      );
+  }
+
+  function buildCalendarMarkup(target, data) {
+    const grouped = {};
+    data.forEach((i) => (grouped[i.date] ??= []).push(i));
+
+    target.innerHTML = Object.keys(grouped).length
+      ? Object.keys(grouped)
+          .map(
+            (d) =>
+              `<h4>${d}</h4><ul>${grouped[d]
+                .map(
+                  (i) => `<li><strong>${i.time}</strong> – ${i.text}</li>`
+                )
+                .join("")}</ul>`
+          )
+          .join("")
+      : "<p style='text-align:center;color:#666;font-style:italic'>No records yet.</p>";
+  }
+
+  const loadCalendar = () =>
+    fetch("/api/calendar")
+      .then((r) => r.json())
+      .then((d) => buildCalendarMarkup(calendarList, d));
+
+  const loadApologyCalendar = () =>
+    fetch("/api/apology-calendar")
+      .then((r) => r.json())
+      .then((d) => buildCalendarMarkup(apolCalList, d));
+
+  function saveToApologyHistory(text) {
+    if (!text.trim()) return;
+    fetch("/api/save-apology-history", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text })
+    }).then(() => loadApologyHistory());
+  }
+
+
+  function showGuiltScore() {
+    const txt = apologyOut.innerText.trim();
+    if (!txt) return alert("No apology found!");
+
+    fetch("/api/guilt-score", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: txt })
+    })
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.error) return alert("❌ Error: " + d.error);
+        if (!d.feedback) return alert("No feedback received.");
+        alert("🧠 Guilt Level:\n\n" + d.feedback);
+      })
+      .catch(() => alert("❌ Server error"));
+  }
+
+
+
+        apolTopList.innerHTML = "";
+        d.forEach((item, idx) => {
+          const li = document.createElement("li");
+          const medal = ["🥇", "🥈", "🥉"][idx] || "🎖";
+          li.innerHTML = `<span class="count-badge">🧠 ${item.score}</span> ${medal} ${item.text}`;
+
+          const prevIndex = prevApologyRanks.findIndex(p => p.text === item.text);
+          if (prevIndex !== -1 && idx < prevIndex) {
+            li.classList.add("rank-up");
+          }
+
+          apolTopList.appendChild(li);
+        });
+        prevApologyRanks = d;
+
+  /* clear helpers */
+
+  function loadTopApologies() {
+    fetch("/api/top-apologies")
+      .then((r) => r.json())
+      .then((d) => {
+        if (!d.length) {
+          apolTopList.innerHTML =
+            "<p style='text-align:center;color:#666;font-style:italic'>No top apologies yet.</p>";
+          return;
+        }
+
+        apolTopList.innerHTML = "";
+        d.forEach((item, idx) => {
+          const li = document.createElement("li");
+          li.innerHTML = `<span class="count-badge">🧠 ${item.score}</span> ${
+            ["🥇", "🥈", "🥉"][idx] || "🎖"
+          } ${item.text}`;
+
+          const prevIndex = prevApologyRanks.findIndex((p) => p.text === item.text);
+          if (prevIndex !== -1 && idx < prevIndex) li.classList.add("rank-up");
+          apolTopList.appendChild(li);
+        });
+        prevApologyRanks = d;
+      });
+  }
+
+  function clearTopExcuses() {
+    if (!confirm("Erase all top excuses?")) return;
+    fetch("/api/clear-rankings", { method: "POST" }).then(loadRankings);
+  }
+  function clearTopApologies() {
+    if (!confirm("Erase all top apologies?")) return;
+    fetch("/api/clear-apology-rankings", { method: "POST" }).then(
+      loadTopApologies
+    );
+  }
+
+  /* memory suggestions */
+  scenario.addEventListener("input", () => {
+    const q = scenario.value.trim();
+    if (!q) {
+      memorySuggest.style.display = "none";
+      return;
+    }
+
+    fetch("/api/memory?q=" + encodeURIComponent(q))
+      .then((r) => r.json())
+      .then((d) => {
+        if (!d.matches.length) {
+          memorySuggest.style.display = "none";
+          return;
+        }
+        memorySuggest.innerHTML = d.matches
+          .map(
+            (txt) =>
+              `<li style="cursor:pointer;padding:2px 0">${txt}</li>`
+          )
+          .join("");
+        memorySuggest.style.display = "block";
+
+        [...memorySuggest.children].forEach(
+          (li) =>
+            (li.onclick = () => {
+              excuseOut.innerText = li.textContent;
+              memorySuggest.style.display = "none";
+            })
+        );
+      })
+      .catch(() => (memorySuggest.style.display = "none"));
+  });
+
+  /* EMERGENCY / SCHEDULER / SCREENSHOT */
+  function collectDestinations() {
+    return {
+      email: (recipientEmail.value || scheduleRecipients.value || "").trim(),
+    };
+  }
+  function triggerEmergency() {
+    fetch("/api/emergency", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(collectDestinations()),
+    }).then(() => alert("🚨 Emergency Triggered"));
+  }
+  function scheduleEmergency() {
+    if (!scheduleDate.value || !scheduleTime.value)
+      return alert("Pick date & time");
+    fetch("/api/schedule", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        date: scheduleDate.value,
+        time: scheduleTime.value,
+        ...collectDestinations(),
+      }),
+    })
+      .then((r) => r.json())
+      .then((d) => alert(d.message));
+  }
+  function generateScreenshot() {
+    fetch("/api/screenshot", { method: "POST" })
+      .then((r) => r.blob())
+      .then((b) => {
+        if (b.type !== "image/png") return alert("Failed");
+        const url = URL.createObjectURL(b);
+        proofImg.src = url;
+        proofImg.style.display = "block";
+        downloadLink.href = url;
+      });
+  }
+
+  /* dark‑mode persistence */
+  function toggleDarkModeSwitch() {
+    document.body.classList.toggle("dark", themeToggle.checked);
+    localStorage.setItem(
+      "darkMode",
+      themeToggle.checked ? "enabled" : "disabled"
+    );
+    themeLabel.textContent = themeToggle.checked
+      ? "🌙 Dark Mode"
+      : "🌞 Light Mode";
+  }
+  (function () {
+    const on = localStorage.getItem("darkMode") === "enabled";
+    if (on) document.body.classList.add("dark");
+    themeToggle.checked = on;
+    themeLabel.textContent = on ? "🌙 Dark Mode" : "🌞 Light Mode";
+    timestamp.textContent = "📅 " + new Date().toLocaleString();
+  })();
+
+  /* initial load */
+  window.onload = () => {
+    loadRankings();
+    loadTopApologies();
+  };
+</script>
+</body>
+</html>

@@ -1,0 +1,392 @@
+import datetime
+import pygame
+import threading
+import smtplib
+import os
+import json
+import uuid
+import shelve
+import atexit
+from collections import defaultdict
+from email.message import EmailMessage
+from datetime import datetime
+from utils.openai_handler import generate_excuse, generate_apology
+from utils.screenshot import generate_screenshot
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+from fastapi.responses import HTMLResponse, FileResponse
+from pydantic import BaseModel
+from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.date import DateTrigger
+from dotenv import load_dotenv
+
+
+load_dotenv()
+
+scheduler = BackgroundScheduler()
+scheduler.start()
+
+app = FastAPI()
+
+memory_db = shelve.open("memory.db", writeback=True)
+
+excuse_ranking = defaultdict(int)
+
+latest_text = ""
+latest_label = ""
+excuse_history = []
+favorite_excuses = []
+
+# Static + Templates Setup
+app.mount("/static", StaticFiles(directory="static"), name="static")
+templates = Jinja2Templates(directory="templates")
+
+# CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# MODELS
+class ExcuseInput(BaseModel):
+    scenario: str
+    urgency: str
+    language: str
+
+class ApologyInput(BaseModel):
+    context: str
+    tone: str
+    type: str
+    style: str
+    language: str
+
+class EmergencyInput(BaseModel):
+    email: str | None = None
+
+class ScheduleInput(BaseModel):
+    date: str
+    time: str
+    email: str | None = None
+
+# ROUTES
+@app.get("/", response_class=HTMLResponse)
+def serve_ui(request: Request):
+    return templates.TemplateResponse("index.html", {"request": request})
+
+@app.post("/api/excuse")
+def get_excuse(request: ExcuseInput):
+    global latest_text, latest_label
+    english, translated = generate_excuse(request.scenario, request.urgency, request.language)
+    latest_text = english
+    latest_label = "Excuse"
+    excuse_history.append({
+        "text": english,
+        "time": datetime.now().strftime("%Y-%m-%d %H:%M")
+    })
+
+    with open("latest_excuse.txt", "w", encoding="utf-8") as f:
+        f.write(english)
+
+    ranking_file = "excuse_ranking.json"
+    if not os.path.exists(ranking_file):
+        with open(ranking_file, "w", encoding="utf-8") as f:
+            json.dump({}, f)
+
+    with open(ranking_file, "r+", encoding="utf-8") as f:
+        try:
+            data = json.load(f)
+            if isinstance(data, list):  # Legacy format fix
+                temp = {}
+                for entry in data:
+                    text = entry.get("text", "")
+                    if text:
+                        temp[text] = temp.get(text, 0) + 1
+                data = temp
+        except:
+            data = {}
+
+        data[english] = data.get(english, 0) + 1
+        f.seek(0)
+        f.truncate()
+        json.dump(data, f, indent=2, ensure_ascii=False)
+
+    # Save to calendar
+    now = datetime.now()
+    entry = {
+        "text": english,
+        "date": now.strftime("%Y-%m-%d"),
+        "time": now.strftime("%I:%M:%S %p")
+    }
+    calendar_file = "excuse_calendar.json"
+    if not os.path.exists(calendar_file):
+        with open(calendar_file, "w", encoding="utf-8") as f:
+            json.dump([], f)
+
+    with open(calendar_file, "r+", encoding="utf-8") as f:
+        try:
+            data = json.load(f)
+            if not isinstance(data, list):
+                data = []
+        except:
+            data = []
+
+        data.append(entry)
+        f.seek(0)
+        f.truncate()
+        json.dump(data, f, indent=2)
+
+
+    return {"english": english, "translated": translated}
+
+@app.post("/api/apology")
+def get_apology(request: ApologyInput):
+    global latest_text, latest_label
+    english, translated = generate_apology(request.context, request.tone, request.type, request.style, request.language)
+    latest_text = english
+    latest_label = "Apology"
+
+    with open("latest_apology.txt", "w", encoding="utf-8") as f:
+        f.write(english)
+
+    return {"message": english, "translated": translated}
+
+@app.get("/proof", response_class=HTMLResponse)
+def show_proof(request: Request):
+    return templates.TemplateResponse("proof.html", {
+        "request": request,
+        "message": latest_text,
+        "label": latest_label
+    })
+
+@app.post("/api/screenshot")
+def get_screenshot():
+    path = generate_screenshot()
+    if path and os.path.exists(path):
+        return FileResponse(path, media_type="image/png", filename="proof.png")
+    return {"url": "null"}
+
+@app.get("/api/history")
+def get_history():
+    return {"history": excuse_history}
+
+@app.get("/api/calendar")
+def get_calendar_data():
+    try:
+        with open("excuse_calendar.json", "r", encoding="utf-8") as f:
+            return json.load(f)
+    except:
+        return []
+
+@app.get("/api/favorites")
+def get_favorites():
+    return {"favorites": favorite_excuses}
+
+@app.post("/api/favorite")
+def add_to_favorites():
+    if latest_text and latest_text not in favorite_excuses:
+        favorite_excuses.append(latest_text)
+        return {"message": "Added to favorites!"}
+    return {"message": "Already in favorites or nothing to add."}
+
+# Central emergency function
+def trigger_emergency_internal(recipient_override=None):
+    try:
+        with open("latest_excuse.txt", "r", encoding="utf-8") as ef:
+            excuse = ef.read().strip()
+    except:
+        excuse = "No excuse available."
+
+    try:
+        with open("latest_apology.txt", "r", encoding="utf-8") as af:
+            apology = af.read().strip()
+    except:
+        apology = "No apology available."
+
+    EMAIL_SENDER = os.getenv("EMAIL_USERNAME")
+    EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
+    DEFAULT_RECIPIENTS = os.getenv("EMAIL_RECIPIENTS", "").split(",")
+
+    recipients = []
+
+    if isinstance(recipient_override, dict):
+        if recipient_override.get("email"):
+            recipients.append(recipient_override["email"])
+
+    else:
+        recipients = [r.strip() for r in DEFAULT_RECIPIENTS if r.strip()]
+
+
+    def send_email():
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        unique_id = str(uuid.uuid4())[:8]
+
+        email_recipients = []
+        if recipients:
+            email_recipients = [r for r in recipients if "@" in r]
+
+        if not email_recipients:
+            email_recipients = [EMAIL_SENDER]
+
+        msg = EmailMessage()
+        msg["Subject"] = f"🚨 Emergency Alert [{timestamp}] - ID: {unique_id}"
+        msg["From"] = EMAIL_SENDER
+        msg["To"] = ", ".join(email_recipients)
+
+        msg.set_content(f"""🚨 Emergency Triggered
+
+🆔 Alert ID: {unique_id}
+🕒 Time: {timestamp}
+
+📝 Excuse:
+{excuse}
+
+🙏 Apology:
+{apology}
+""")
+
+        screenshot_path = "static/screenshot.png"
+        if os.path.exists(screenshot_path):
+            with open(screenshot_path, "rb") as f:
+                msg.add_attachment(f.read(), maintype='image', subtype='png', filename='proof.png')
+
+        try:
+            with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
+                smtp.login(EMAIL_SENDER, EMAIL_PASSWORD)
+                smtp.send_message(msg)
+            print("✅ Email sent to:", email_recipients)
+
+            email_log = {
+                "id": unique_id,
+                "timestamp": timestamp,
+                "excuse": excuse,
+                "apology": apology,
+                "recipients": email_recipients
+            }
+            if not os.path.exists("email_log.json"):
+                with open("email_log.json", "w", encoding="utf-8") as f:
+                    json.dump([], f)
+
+            with open("email_log.json", "r+", encoding="utf-8") as f:
+                data = json.load(f)
+                data.append(email_log)
+                f.seek(0)
+                json.dump(data, f, indent=2, ensure_ascii=False)
+
+        except Exception as e:
+            print("❌ Email error:", e)
+
+
+
+    def play_alert():
+        try:
+            pygame.mixer.init()
+            pygame.mixer.music.load("static/alert.mp3")
+            pygame.mixer.music.set_volume(1.0)
+            pygame.mixer.music.play()
+        except Exception as e:
+            print("❌ Sound error:", e)
+
+    def log_emergency():
+        log = {
+            "timestamp": str(datetime.now()),
+            "excuse": excuse,
+            "apology": apology,
+            "recipients": recipients
+        }
+        try:
+            if not os.path.exists("emergency_log.json"):
+                with open("emergency_log.json", "w", encoding="utf-8") as f:
+                    json.dump([], f)
+
+            with open("emergency_log.json", "r+", encoding="utf-8") as f:
+                data = json.load(f)
+                data.append(log)
+                f.seek(0)
+                json.dump(data, f, indent=2, ensure_ascii=False)
+            print("📝 Emergency logged.")
+        except Exception as e:
+            print("❌ Logging failed:", e)
+
+    threading.Thread(target=send_email).start()
+    threading.Thread(target=play_alert).start()
+    threading.Thread(target=log_emergency).start()
+
+@app.post("/api/emergency")
+def trigger_emergency(payload: EmergencyInput):
+    trigger_emergency_internal(payload.model_dump())
+    return {"status": "ok"}
+
+@app.get("/admin", response_class=HTMLResponse)
+def admin_panel(request: Request):
+    logs = []
+    if os.path.exists("email_log.json"):
+        with open("email_log.json", "r", encoding="utf-8") as f:
+            logs = json.load(f)
+
+    return templates.TemplateResponse("admin.html", {
+        "request": request,
+        "logs": logs
+    })
+
+@app.post("/api/schedule")
+def schedule_emergency(input: ScheduleInput):
+    try:
+        dt_str = f"{input.date} {input.time}"
+        dt = datetime.strptime(dt_str, "%Y-%m-%d %H:%M")
+        scheduler.add_job(trigger_emergency_internal, trigger=DateTrigger(run_date=dt), args=[input.model_dump()])
+        print(f"⏰ Scheduled emergency at {dt}")
+        return {"message": f"🚨 Emergency scheduled at {dt}"}
+    except Exception as e:
+        print("❌ Scheduling failed:", e)
+        return {"message": "❌ Failed to schedule emergency"}
+
+# Optional periodic fallback every 30 mins
+scheduler.add_job(lambda: print("📅 Auto fallback check."), 'interval', minutes=30)
+
+@app.get("/api/rankings")
+def get_rankings():
+    try:
+        with open("excuse_ranking.json", "r", encoding="utf-8") as f:
+            data = json.load(f)
+        if isinstance(data, list):
+            # Convert legacy list to dict
+            temp = {}
+            for item in data:
+                text = item.get("text", "")
+                if text:
+                    temp[text] = temp.get(text, 0) + 1
+            data = temp
+        sorted_rankings = sorted(data.items(), key=lambda x: x[1], reverse=True)
+        return [{"text": r[0], "count": r[1]} for r in sorted_rankings]
+    except Exception as e:
+        print("❌ Failed to read rankings:", e)
+        return []
+
+# ──────── MEMORY LOOKUP ENDPOINT ────────
+@app.get("/api/memory")
+def memory_lookup(q: str):
+    """
+    q = free‑text scenario query (front‑end sends whatever’s typed so far)
+    returns up to 5 matching excuses from memory_db
+    """
+    q = q.strip().lower()
+    results = []
+    for kw, excuses in memory_db.items():
+        if q in kw:
+            results.extend(excuses)
+    # de‑duplicate + limit
+    clean = list(dict.fromkeys(results))[:5]
+    return {"matches": clean}
+
+@app.post("/api/clear-rankings")
+def clear_rankings():
+    with open("excuse_ranking.json", "w", encoding="utf-8") as f:
+        json.dump({}, f)
+    return {"message": "Top excuses cleared."}
+
+atexit.register(memory_db.close)
