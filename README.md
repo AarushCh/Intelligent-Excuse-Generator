@@ -31,7 +31,7 @@ screenshot proof, dark mode, favorites, rankings, and emergency alert system via
 
 1. **Clone the repo**  
    ```bash
-   git clone https://github.com/yourname/excuse-generator.git
+   git clone https://github.com/AarushCh/Intelligent-Excuse-Generator
    cd excuse-generator
 
 
