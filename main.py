@@ -23,10 +23,11 @@ from fastapi.responses import HTMLResponse, FileResponse
 from pydantic import BaseModel
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.date import DateTrigger
+from pathlib import Path
 from dotenv import load_dotenv
 
-
-load_dotenv("C:\\Users\\aarus\\Desktop\\Others\\Education\\Internship\\LaunchED Global AI Internship\\Ch Aarush Udbhav - Major Project\\Ch Aarush Udbhav - Major Project\\Intelligent-Excuse-Generator\\unused\\.env")
+env_path = Path(r"/unused/.env")
+load_dotenv(dotenv_path=env_path)
 
 apology_history: list[dict] = []
 favorite_apologies: list[str] = []
