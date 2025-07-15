@@ -59,21 +59,37 @@ screenshot proof, dark mode, favorites, rankings, and emergency alert system via
 
 .
 ├── main.py
+
 ├── .env
+
 ├── requirements.txt
+
 ├── templates/
+
 │   └── index.html
+
 ├── static/
+
 │   ├── style.css
+
 │   ├── alert.mp3
+
 │   ├── click.mp3
+
 │   ├── logo.png
+
 │   └── favicon.png
+
 ├── utils/
+
 │   ├── openai_handler.py
+
 │   └── screenshot.py
+
 ├── apology_scores.json
+
 ├── excuse_calendar.json
+
 └── emergency_log.json
 
 ## **🤖 All AI Features (Using OpenAI GPT Models)**
