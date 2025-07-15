@@ -5,20 +5,20 @@
   <title>Intelligent Excuse Generator</title>
 
   <!-- ─── ASSETS ─── -->
-  <link rel="icon" type="image/png" href="/static/favicon.png" />
-  <link rel="manifest" href="/static/manifest.json" />
+  <link rel="icon" type="image/png" href="favicon.png" />
+  <link rel="manifest" href="manifest.json" />
   <link
     href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Rajdhani:wght@500&display=swap"
     rel="stylesheet"
   />
-  <link rel="stylesheet" href="/static/style.css" />
+  <link rel="stylesheet" href="style.css" />
 
   <!-- ─── SERVICE‑WORKER ─── -->
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () =>
         navigator.serviceWorker
-          .register("/static/service-worker.js")
+          .register("service-worker.js")
           .catch(console.error)
       );
     }
@@ -367,10 +367,10 @@
 </div>
 
 <!-- watermark + logo -->
-<img class="proof-logo" src="/static/logo.png" alt="logo" />
+<img class="proof-logo" src="logo.png" alt="logo" />
 <p class="proof-watermark">Ch Aarush Udbhav</p>
 <p class="proof-timestamp" id="timestamp"></p>
-<audio id="clickSound" src="/static/click.mp3" preload="auto"></audio>
+<audio id="clickSound" src="click.mp3" preload="auto"></audio>
 
 <!-- ═══════════ JS LOGIC ══════════════════ -->
 <script>
