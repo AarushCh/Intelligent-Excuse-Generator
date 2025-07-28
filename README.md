@@ -59,38 +59,71 @@ screenshot proof, dark mode, favorites, rankings, and emergency alert system via
 
 .
 ├── main.py
+
 ├── .env
+
 ├── README.md
+
 ├── requirements.txt
+
 ├── apology_scores.json
+
 ├── email_log.json
+
 ├── emergency_log.json
+
 ├── excuse_calendar.json
+
 ├── excuse_ranking.json
+
 ├── latest_apology.txt
+
 ├── latest_excuse.txt
+
 ├── smart_scores.json
+
 ├── static/
+
 │   ├── alert.mp3
+
 │   ├── background-dark.mp4
+
 │   ├── background-light.mp4
+
 │   ├── click.mp3
+
 │   ├── favicon.png
+
 │   ├── logo.png
+
 │   ├── manifest.json
+
 │   ├── style.css
+
 │   ├── fonts/
+
 │   │   └── Coolvetica-Rg-Cond.otf
+
 │   └── icons/
+
 │       └── icon-192.png
+
 ├── docs/
+
 │   ├── index.html
+
 │   ├── proof.html
+
 │   └── admin.html
+
 ├── utils/
+
 │   ├── openai_handler.py
+
 │   ├── screenshot.py
+
 │   └── tts_offline.py
+
 
 
 ## **🤖 All AI Features (Using OpenAI GPT Models)**
