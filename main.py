@@ -70,7 +70,7 @@ latest_excuse = None
 latest_apology = None
 
 # ========== OpenAI client =========
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+client = OpenAI(openai_api_key=os.getenv("OPENAI_API_KEY"))
 
 # ============ FastAPI & CORS + static/templates ============
 app = FastAPI()
