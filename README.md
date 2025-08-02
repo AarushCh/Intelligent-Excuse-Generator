@@ -58,6 +58,7 @@ screenshot proof, dark mode, favorites, rankings, and emergency alert system via
 ## **📁 Folder Structure**
 
 .
+
 ├── main.py
 
 ├── .env
