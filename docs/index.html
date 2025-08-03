@@ -3,21 +3,23 @@
 <head>
   <meta charset="UTF-8" />
   <title>Intelligent Excuse Generator</title>
-  <link rel="icon" type="image/png" href="static/favicon.png" />
-  <link rel="manifest" href="static/manifest.json" />
+  <link rel="icon" type="image/png" href="/static/favicon.png" />
+  <link rel="manifest" href="/static/manifest.json" />
+  <!-- Full Inter and Rajdhani fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="static/style.css">
 </head>
 <body>
+  <!-- Video Background Container -->
   <div class="video-background">
-    <video id="background-video" autoplay muted loop>
-      <source id="video-source" src="static/background-light.mp4" type="video/mp4" />
+    <video id="background-video" autoplay loop muted playsinline>
       <source id="video-source-webm" src="static/background-light.webm" type="video/webm" />
-      Your browser does not support the video tag.
+      <source id="video-source" src="static/background-light.mp4" type="video/mp4" />
     </video>
     <div class="video-overlay"></div>
   </div>
 
+  <!-- DARK‑MODE TOGGLE -->
   <div class="theme-switch-wrapper">
     <label class="theme-switch">
       <input type="checkbox" id="themeToggle" onchange="toggleDarkModeSwitch()" />
@@ -31,6 +33,7 @@
       <h2 class="cyber-title effect-title">Intelligent Excuse Generator</h2>
     </div>
 
+    <!-- EXCUSE FORM -->
     <label for="scenario">Scenario:</label>
     <input id="scenario" placeholder="Type your excuse scenario here…" />
     <ul id="memorySuggest" style="display:none;margin:4px 0 8px;padding:6px 10px;background:#f1f1f1;border-radius:8px;font-size:14px"></ul>
@@ -62,13 +65,13 @@
     <p id="excuseOut"></p>
     <p id="translatedOut"></p>
     <button class="teal action-btn" onclick="playVoice()">🔊 Speak</button>
-    <button class="round-toggle" onclick="saveExcuseFavorite()">❤️</button>
 
-    <div class="flex gap-2 p-2">
-      <button id="historyBtn" class="icon-btn" onclick="toggleBox('historyBox', this)">📜</button>
-      <button id="favoritesBtn" class="icon-btn" onclick="toggleBox('favoritesBox', this)">⭐</button>
-      <button id="calendarBtn" class="icon-btn" onclick="toggleBox('calendarBox', this)">📅</button>
-      <button id="aiRankBtn" class="icon-btn" onclick="toggleBox('rankingsBox', this)">📈</button>
+    <div class="toggle-btns">
+      <button class="round-toggle" onclick="toggleBox('historyBox',this)">📜</button>
+      <button class="round-toggle" onclick="toggleBox('favoritesBox',this)">⭐</button>
+      <button class="round-toggle" onclick="saveFavorite()">❤️</button>
+      <button class="round-toggle" onclick="toggleBox('calendarBox',this)">📅</button>
+      <button class="round-toggle" onclick="toggleBox('rankingsBox',this)">🏆</button>
     </div>
 
     <div id="historyBox" class="toggle-box">
@@ -86,13 +89,14 @@
     <div id="rankingsBox" class="toggle-box">
       <h4 style="display:flex;justify-content:space-between;align-items:center;margin:0">
         <span>🏆 Top Excuses (AI Rankings)</span>
-        <button class="small-round-btn" onclick="clearTopExcuses()">🗑️</button>
+        <button class="small-round-btn" onclick="clearTopExcuses()" title="Clear">🗑️</button>
       </h4>
       <ul id="rankingsList"></ul>
     </div>
 
     <hr />
 
+    <!-- APOLOGY FORM -->
     <label for="apologyContext">Apology context:</label>
     <input id="apologyContext" placeholder="e.g., I forgot my friend's birthday" />
 
@@ -118,11 +122,11 @@
     <button class="teal action-btn" onclick="generateApology()">Generate Apology</button>
     <button class="teal action-btn" onclick="showGuiltScore()">🧠 Guilt Meter</button>
     <button class="teal action-btn" onclick="playApologyVoice()">🔊 Speak</button>
-    <button class="round-toggle" onclick="saveApologyFavorite()">❤️</button>
 
     <div class="toggle-btns">
       <button class="round-toggle" onclick="toggleBox('apolHistoryBox',this)">📜</button>
       <button class="round-toggle" onclick="toggleBox('apolFavBox',this)">⭐</button>
+      <button class="round-toggle" onclick="saveApologyFavorite()">❤️</button>
       <button class="round-toggle" onclick="toggleBox('apolCalBox',this)">📅</button>
       <button class="round-toggle" onclick="toggleBox('apolTopBox',this)">🏆</button>
     </div>
@@ -143,7 +147,7 @@
     <div id="apolTopBox" class="toggle-box">
       <h4 style="display:flex;justify-content:space-between;align-items:center;margin:0">
         <span>🏆 Top Apologies (AI Rankings)</span>
-        <button class="small-round-btn" onclick="clearTopApologies()">🗑️</button>
+        <button class="small-round-btn" onclick="clearTopApologies()" title="Clear">🗑️</button>
       </h4>
       <ul id="apolTopList"></ul>
     </div>
@@ -189,46 +193,15 @@
 
     <img id="proofImg" style="display:none;margin:10px auto;max-width:90%;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.2);" />
     <button id="downloadBtn" class="teal action-btn" style="display:none;">Download Image</button>
+
   </div>
 
   <img class="proof-logo" src="static/images/logo.png" alt="logo" />
   <p class="proof-watermark">Ch Aarush Udbhav</p>
   <p class="proof-timestamp" id="timestamp"></p>
-  <audio id="clickSound" src="static/click.mp3" preload="auto"></audio>
-</body>
+  <audio id="clickSound" src="/static/click.mp3" preload="auto"></audio>
 
   <script>
-
-    const clickSound = new Audio("/static/sounds/click.mp3");
-
-    function toggleSection(buttonId, sectionId) {
-      const section = document.getElementById(sectionId);
-      if (!section) return;
-
-      // Toggle visibility
-      const isVisible = section.style.display === "block";
-      section.style.display = isVisible ? "none" : "block";
-
-      // Play sound
-      clickSound.currentTime = 0;
-      clickSound.play();
-    }
-
-    document.addEventListener("DOMContentLoaded", function () {
-      document.getElementById("historyBtn")?.addEventListener("click", () =>
-        toggleSection("historyBtn", "historySection")
-      );
-      document.getElementById("favoritesBtn")?.addEventListener("click", () =>
-        toggleSection("favoritesBtn", "favoritesSection")
-      );
-      document.getElementById("calendarBtn")?.addEventListener("click", () =>
-        toggleSection("calendarBtn", "calendarSection")
-      );
-      document.getElementById("aiRankBtn")?.addEventListener("click", () =>
-        toggleSection("aiRankBtn", "aiRankSection")
-      );
-    });
-
     (function initializeStyles() {
       const loadingStyle = document.createElement('style');
       loadingStyle.textContent = `
@@ -1228,17 +1201,6 @@
 
       backgroundVideo.load();
       document.getElementById("screenshotTheme").value = isDark ? "dark" : "light";
-
-      document.addEventListener("DOMContentLoaded", () => {
-        const darkModeSetting = localStorage.getItem("darkMode");
-        const themeToggle = document.getElementById("themeToggle");
-        
-        if (themeToggle) {
-          themeToggle.checked = (darkModeSetting === "enabled");
-        }
-
-        toggleDarkModeSwitch();  // Apply theme and load correct video
-      });
     }
 
     // Initialize theme and setup event listeners
