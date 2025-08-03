@@ -12,9 +12,9 @@
 <body>
   <!-- Video Background Container -->
   <div class="video-background">
-    <video id="background-video" autoplay muted loop playsinline>
-      <source src="static/background-light.mp4" type="video/mp4" id="video-source">
-      <source src="static/background-light.webm" type="video/webm" id="video-source-webm">
+    <video id="background-video" autoplay loop muted playsinline>
+      <source id="video-source-webm" src="static/background-light.webm" type="video/webm" />
+      <source id="video-source" src="static/background-light.mp4" type="video/mp4" />
     </video>
     <div class="video-overlay"></div>
   </div>
@@ -196,7 +196,7 @@
 
   </div>
 
-  <img class="proof-logo" src="static/logo.png" alt="logo" />
+  <img class="proof-logo" src="static/images/logo.png" alt="logo" />
   <p class="proof-watermark">Ch Aarush Udbhav</p>
   <p class="proof-timestamp" id="timestamp"></p>
   <audio id="clickSound" src="/static/click.mp3" preload="auto"></audio>
@@ -1183,30 +1183,26 @@
       const videoSource = document.getElementById("video-source");
       const videoSourceWebm = document.getElementById("video-source-webm");
       const backgroundVideo = document.getElementById("background-video");
-      
-      
+
       if (!themeToggle || !themeLabel || !videoSource || !backgroundVideo) {
-        console.warn('Theme toggle elements not found');
+        console.warn("Theme toggle elements not found");
         return;
       }
-      
+
       const isDark = themeToggle.checked;
-      
+
       document.body.classList.toggle("dark", isDark);
       localStorage.setItem("darkMode", isDark ? "enabled" : "disabled");
       themeLabel.textContent = isDark ? "🌙 Dark Mode" : "🌞 Light Mode";
-      
-      // Switch video sources based on theme
-      if (isDark) {
-        videoSource.src = "/static/background-dark.mp4";
-        if (videoSourceWebm) videoSourceWebm.src = "/static/background-dark.webm";
-      } else {
-        videoSource.src = "/static/background-light.mp4";
-        if (videoSourceWebm) videoSourceWebm.src = "/static/background-light.webm";
+
+      // Use relative paths for GitHub Pages
+      const basePath = "static/"; // Not starting with '/' to keep it relative
+      videoSource.src = isDark ? `${basePath}background-dark.mp4` : `${basePath}background-light.mp4`;
+      if (videoSourceWebm) {
+        videoSourceWebm.src = isDark ? `${basePath}background-dark.webm` : `${basePath}background-light.webm`;
       }
-      
-      // Reload video with new source
-      backgroundVideo.load();
+
+      backgroundVideo.load(); // Reload the video element
       document.getElementById("screenshotTheme").value = isDark ? "dark" : "light";
     }
 
