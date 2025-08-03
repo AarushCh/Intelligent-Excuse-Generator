@@ -12,9 +12,9 @@
 <body>
   <!-- Video Background Container -->
   <div class="video-background">
-    <video id="background-video" autoplay loop muted playsinline>
-      <source id="video-source" src="./static/background-light.mp4" type="video/mp4">
-      <source id="video-source-webm" src="./static/background-light.webm" type="video/webm">
+    <video id="background-video" autoplay muted loop>
+      <source id="video-source" src="static/background-light.mp4" type="video/mp4" />
+      <source id="video-source-webm" src="static/background-light.webm" type="video/webm" />
       Your browser does not support the video tag.
     </video>
     <div class="video-overlay"></div>
@@ -1202,6 +1202,17 @@
 
       backgroundVideo.load();
       document.getElementById("screenshotTheme").value = isDark ? "dark" : "light";
+
+      document.addEventListener("DOMContentLoaded", () => {
+        const darkModeSetting = localStorage.getItem("darkMode");
+        const themeToggle = document.getElementById("themeToggle");
+        
+        if (themeToggle) {
+          themeToggle.checked = (darkModeSetting === "enabled");
+        }
+
+        toggleDarkModeSwitch();  // Apply theme and load correct video
+      });
     }
 
     // Initialize theme and setup event listeners
