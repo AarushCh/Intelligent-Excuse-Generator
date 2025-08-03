@@ -202,32 +202,6 @@
   <audio id="clickSound" src="/static/click.mp3" preload="auto"></audio>
 
   <script>
-    const toggle = document.getElementById("dark-mode-toggle");
-    const body = document.body;
-    const video = document.getElementById("background-video");
-    const videoSource = document.getElementById("video-source");
-    const videoSourceWebm = document.getElementById("video-source-webm");
-
-    function updateVideoSource() {
-      const isDark = body.classList.contains("dark-mode");
-      if (isDark) {
-        videoSource.src = "static/background-dark.mp4";
-        if (videoSourceWebm) videoSourceWebm.src = "static/background-dark.webm";
-      } else {
-        videoSource.src = "static/background-light.mp4";
-        if (videoSourceWebm) videoSourceWebm.src = "static/background-light.webm";
-      }
-      video.load();
-    }
-
-    toggle.addEventListener("click", () => {
-      body.classList.toggle("dark-mode");
-      updateVideoSource();
-    });
-
-    // Initial source set on load
-    updateVideoSource();
-    // Initialize and inject loading animation CSS
     (function initializeStyles() {
       const loadingStyle = document.createElement('style');
       loadingStyle.textContent = `
