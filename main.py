@@ -76,7 +76,7 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 app = FastAPI()
 scheduler = BackgroundScheduler()
 scheduler.start()
-app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/static", StaticFiles(directory="docs/static"), name="static")
 templates = Jinja2Templates(directory="docs")
 app.add_middleware(
     CORSMiddleware,

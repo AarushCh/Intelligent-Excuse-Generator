@@ -13,10 +13,8 @@
   <!-- Video Background Container -->
   <div class="video-background">
     <video id="background-video" autoplay muted loop playsinline>
-      <source src="/static/background-light.mp4" type="video/mp4" id="video-source">
-      <source src="/static/background-light.webm" type="video/webm" id="video-source-webm">
-      <!-- Fallback for unsupported browsers -->
-      <div class="video-fallback"></div>
+      <source src="static/background-light.mp4" type="video/mp4" id="video-source">
+      <source src="static/background-light.webm" type="video/webm" id="video-source-webm">
     </video>
     <div class="video-overlay"></div>
   </div>
@@ -198,12 +196,37 @@
 
   </div>
 
-  <img class="proof-logo" src="/static/logo.png" alt="logo" />
+  <img class="proof-logo" src="static/logo.png" alt="logo" />
   <p class="proof-watermark">Ch Aarush Udbhav</p>
   <p class="proof-timestamp" id="timestamp"></p>
   <audio id="clickSound" src="/static/click.mp3" preload="auto"></audio>
 
   <script>
+    const toggle = document.getElementById("dark-mode-toggle");
+    const body = document.body;
+    const video = document.getElementById("background-video");
+    const videoSource = document.getElementById("video-source");
+    const videoSourceWebm = document.getElementById("video-source-webm");
+
+    function updateVideoSource() {
+      const isDark = body.classList.contains("dark-mode");
+      if (isDark) {
+        videoSource.src = "static/background-dark.mp4";
+        if (videoSourceWebm) videoSourceWebm.src = "static/background-dark.webm";
+      } else {
+        videoSource.src = "static/background-light.mp4";
+        if (videoSourceWebm) videoSourceWebm.src = "static/background-light.webm";
+      }
+      video.load();
+    }
+
+    toggle.addEventListener("click", () => {
+      body.classList.toggle("dark-mode");
+      updateVideoSource();
+    });
+
+    // Initial source set on load
+    updateVideoSource();
     // Initialize and inject loading animation CSS
     (function initializeStyles() {
       const loadingStyle = document.createElement('style');
