@@ -83,33 +83,33 @@ screenshot proof, dark mode, favorites, rankings, and emergency alert system via
 
 ├── smart_scores.json
 
-├── static/
-
-│   ├── alert.mp3
-
-│   ├── background-dark.mp4
-
-│   ├── background-light.mp4
-
-│   ├── click.mp3
-
-│   ├── favicon.png
-
-│   ├── logo.png
-
-│   ├── manifest.json
-
-│   ├── style.css
-
-│   ├── fonts/
-
-│   │   └── Coolvetica-Rg-Cond.otf
-
-│   └── icons/
-
-│       └── icon-192.png
-
 ├── docs/
+
+|   ├── static/
+
+│   |   ├── alert.mp3
+
+│   |   ├── background-dark.mp4
+
+│   |   ├── background-light.mp4
+
+│   |   ├── click.mp3
+
+│   |   ├── favicon.png
+
+│   |   ├── logo.png
+
+│   |   ├── manifest.json
+
+│   |   ├── style.css
+
+│   |   ├── fonts/
+
+│   |   │   └── Coolvetica-Rg-Cond.otf
+
+│   |   └── icons/
+
+│   |      └── icon-192.png
 
 │   ├── index.html
 
