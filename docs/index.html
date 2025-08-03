@@ -13,8 +13,9 @@
   <!-- Video Background Container -->
   <div class="video-background">
     <video id="background-video" autoplay loop muted playsinline>
-      <source id="video-source-webm" src="static/background-light.webm" type="video/webm" />
-      <source id="video-source" src="static/background-light.mp4" type="video/mp4" />
+      <source id="video-source" src="./static/background-light.mp4" type="video/mp4">
+      <source id="video-source-webm" src="./static/background-light.webm" type="video/webm">
+      Your browser does not support the video tag.
     </video>
     <div class="video-overlay"></div>
   </div>
@@ -1185,24 +1186,21 @@
       const backgroundVideo = document.getElementById("background-video");
 
       if (!themeToggle || !themeLabel || !videoSource || !backgroundVideo) {
-        console.warn("Theme toggle elements not found");
+        console.warn('Theme toggle elements not found');
         return;
       }
 
       const isDark = themeToggle.checked;
-
       document.body.classList.toggle("dark", isDark);
       localStorage.setItem("darkMode", isDark ? "enabled" : "disabled");
       themeLabel.textContent = isDark ? "🌙 Dark Mode" : "🌞 Light Mode";
 
-      // Use relative paths for GitHub Pages
-      const basePath = "static/"; // Not starting with '/' to keep it relative
-      videoSource.src = isDark ? `${basePath}background-dark.mp4` : `${basePath}background-light.mp4`;
-      if (videoSourceWebm) {
-        videoSourceWebm.src = isDark ? `${basePath}background-dark.webm` : `${basePath}background-light.webm`;
-      }
+      // Fix relative paths here:
+      videoSource.src = isDark ? "./static/background-dark.mp4" : "./static/background-light.mp4";
+      if (videoSourceWebm)
+        videoSourceWebm.src = isDark ? "./static/background-dark.webm" : "./static/background-light.webm";
 
-      backgroundVideo.load(); // Reload the video element
+      backgroundVideo.load();
       document.getElementById("screenshotTheme").value = isDark ? "dark" : "light";
     }
 
