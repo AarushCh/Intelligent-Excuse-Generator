@@ -129,6 +129,35 @@ body.dark .video-background.fallback-active::before {
   background: linear-gradient(135deg, #0d1b2a, #1b263b);
 }
 
+/*========== ROUND BUTTONS ==========*/
+.icon-button {
+  width: 40px;
+  height: 40px;
+  border-radius: 9999px;
+  font-size: 20px;
+  text-align: center;
+  line-height: 40px;
+  border: none;
+  background: white;
+  transition: transform 0.2s ease, background-color 0.2s;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  cursor: pointer;
+}
+.icon-button:hover {
+  background: #e0f7fa;
+  transform: scale(1.1);
+}
+.panel {
+  padding: 12px;
+  margin-top: 10px;
+  background: #f7f7f7;
+  border-radius: 10px;
+  box-shadow: 0 0 6px rgba(0,0,0,0.1);
+}
+.hidden {
+  display: none;
+}
+
 /*========== GLOBAL FONTS & CURSOR ==========*/
 * {
   font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
