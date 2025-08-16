@@ -717,7 +717,7 @@
         .then((data) => {
           if (data.completed) {
             const now = new Date().toLocaleString();
-            const fullApology = `${start} ${data.completed}`;
+            const fullApology = `${data.completed}`;
             const apologyOut = document.getElementById("apologyOut");
             apologyOut.innerHTML = `<strong>${now}</strong><br>${fullApology}`;
             saveApologyToAllSystems(fullApology);
