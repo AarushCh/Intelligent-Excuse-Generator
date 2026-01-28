@@ -85,31 +85,31 @@ screenshot proof, dark mode, favorites, rankings, and emergency alert system via
 
 ├── docs/
 
-|   ├── static/
+|      ├── static/
 
-│   |   ├── alert.mp3
+│      |   ├── alert.mp3
 
-│   |   ├── background-dark.mp4
+│      |   ├── background-dark.mp4
 
-│   |   ├── background-light.mp4
+│      |   ├── background-light.mp4
 
-│   |   ├── click.mp3
+│      |   ├── click.mp3
 
-│   |   ├── favicon.png
+│      |   ├── favicon.png
 
-│   |   ├── logo.png
+│      |   ├── logo.png
 
-│   |   ├── manifest.json
+│      |   ├── manifest.json
 
-│   |   ├── style.css
+│      |   ├── style.css
 
-│   |   ├── fonts/
+│      |   ├── fonts/
 
-│   |   │   └── Coolvetica-Rg-Cond.otf
+│      |      │   └── Coolvetica-Rg-Cond.otf
 
-│   |   └── icons/
+│      |      └── icons/
 
-│   |      └── icon-192.png
+│      |         └── icon-192.png
 
 │   ├── index.html
 
