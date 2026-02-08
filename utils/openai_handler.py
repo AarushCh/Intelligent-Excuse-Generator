@@ -1,11 +1,20 @@
-from openai import OpenAI
 import os
+from openai import OpenAI
 from dotenv import load_dotenv
 
 load_dotenv()
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+# Configure OpenRouter Client
+client = OpenAI(
+    base_url="https://openrouter.ai/api/v1",
+    api_key=os.getenv("OPENROUTER_API_KEY"),
+)
+
+# Define the model variable
+MODEL_NAME = "nvidia/nemotron-nano-12b-v2-vl:free"
 
 def generate_excuse(scenario, urgency, language="en", style="professional"):
+    # 1. Preserve original Prompt Branching
     if style == "professional":
         prompt = f"""
 You are a professional excuse generator. Generate a realistic and responsible excuse.
@@ -33,25 +42,27 @@ Rules:
 """
 
     try:
+        # 2. Update to OpenRouter + Nemotron + Reasoning
         response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
+            model=MODEL_NAME,
             messages=[{"role": "user", "content": prompt}],
             temperature=0.7,
-            max_tokens=250
+            extra_body={"reasoning": {"enabled": True}}
         )
         base_text = response.choices[0].message.content.strip()
     except Exception as e:
         print("❌ Error generating excuse:", e)
         base_text = "Something went wrong while generating your excuse."
 
+    # 3. Preserve Translation Logic
     if language != "en":
         try:
             translation_prompt = f"Translate this to {language}:\n{base_text}"
             trans_response = client.chat.completions.create(
-                model="gpt-3.5-turbo",
+                model=MODEL_NAME,
                 messages=[{"role": "user", "content": translation_prompt}],
                 temperature=0.7,
-                max_tokens=250
+                extra_body={"reasoning": {"enabled": True}}
             )
             translated = trans_response.choices[0].message.content.strip()
         except Exception as e:
@@ -68,24 +79,25 @@ def generate_apology(context, tone, type, style, language="en"):
 
     try:
         response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
+            model=MODEL_NAME,
             messages=[{"role": "user", "content": prompt}],
             temperature=0.7,
-            max_tokens=250
+            extra_body={"reasoning": {"enabled": True}}
         )
         base_message = response.choices[0].message.content.strip()
     except Exception as e:
         print("❌ OpenAI error during apology:", e)
         base_message = "Sorry, something went wrong generating the apology."
 
+    # Preserve Translation Logic here as well
     if language != "en":
         try:
             translation_prompt = f"Translate this to {language}:\n{base_message}"
             trans_response = client.chat.completions.create(
-                model="gpt-3.5-turbo",
+                model=MODEL_NAME,
                 messages=[{"role": "user", "content": translation_prompt}],
                 temperature=0.7,
-                max_tokens=250
+                extra_body={"reasoning": {"enabled": True}}
             )
             translated = trans_response.choices[0].message.content.strip()
         except Exception as e:
@@ -102,13 +114,13 @@ def adjust_tone(text, tone):
 
     try:
         response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
+            model=MODEL_NAME,
             messages=[
                 {"role": "system", "content": "You are a professional tone adjuster."},
                 {"role": "user", "content": prompt}
             ],
             temperature=0.7,
-            max_tokens=250
+            extra_body={"reasoning": {"enabled": True}}
         )
         return response.choices[0].message.content.strip()
     except Exception as e:
@@ -119,12 +131,12 @@ def adjust_tone(text, tone):
 def autocomplete_text(prompt):
     try:
         response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
+            model=MODEL_NAME,
             messages=[
                 {"role": "user", "content": f"Continue this excuse:\n{prompt}"}
             ],
             temperature=0.7,
-            max_tokens=150
+            extra_body={"reasoning": {"enabled": True}}
         )
         return response.choices[0].message.content.strip()
     except Exception as e:

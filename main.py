@@ -3,6 +3,7 @@ import json
 import uuid
 import shelve
 import requests
+import re
 from openai import OpenAI
 from fastapi import Request
 from fastapi import FastAPI, Body, Depends, HTTPException, Response
@@ -18,29 +19,30 @@ from pydantic import BaseModel
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.date import DateTrigger
 from dotenv import load_dotenv
+
+# Note: You should ideally update utils/openai_handler.py to use the new OpenRouter client as well
 from utils.openai_handler import (
     generate_excuse,
     generate_apology,
-    adjust_tone,
-    autocomplete_text,
 )
 
 # ============ Environment & Files =============
 load_dotenv()
 
-OPENAI_API_KEY  = os.getenv("OPENAI_API_KEY")
-HCTI_API_USER   = os.getenv("HCTI_API_USER")
-HCTI_API_KEY    = os.getenv("HCTI_API_KEY")
-EMAIL_USERNAME  = os.getenv("EMAIL_USERNAME")
-EMAIL_PASSWORD  = os.getenv("EMAIL_PASSWORD")
-EMAIL_RECIPIENTS= os.getenv("EMAIL_RECIPIENTS")
+# Updated for OpenRouter
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "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")
+HCTI_API_USER    = os.getenv("HCTI_API_USER")
+HCTI_API_KEY     = os.getenv("HCTI_API_KEY")
+EMAIL_USERNAME   = os.getenv("EMAIL_USERNAME")
+EMAIL_PASSWORD   = os.getenv("EMAIL_PASSWORD")
+EMAIL_RECIPIENTS = os.getenv("EMAIL_RECIPIENTS")
 
-required = ["OPENAI_API_KEY", "HCTI_API_USER", "HCTI_API_KEY"]
-missing  = [v for v in required if not os.getenv(v)]
-if missing:
-    print(f"⚠️ Missing env vars: {missing}")
+required = ["OPENROUTER_API_KEY", "HCTI_API_USER", "HCTI_API_KEY"]
+# Check using the variable directly since we support hardcoding above if .env is missing
+if not OPENROUTER_API_KEY:
+    print("⚠️ Missing OPENROUTER_API_KEY")
 
-print(f"OpenAI Key: {'✅' if OPENAI_API_KEY else '❌'}")
+print(f"OpenRouter Key: {'✅' if OPENROUTER_API_KEY else '❌'}")
 print(f"HCTI User: {'✅' if HCTI_API_USER else '❌'}")
 print(f"HCTI Key : {'✅' if HCTI_API_KEY else '❌'}")
 print(f"Email    : {'✅' if EMAIL_USERNAME and EMAIL_PASSWORD else '❌'}")
@@ -69,8 +71,14 @@ latest_label = ""
 latest_excuse = None
 latest_apology = None
 
-# ========== OpenAI client =========
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+# ========== OpenRouter Client =========
+# Using the specific configuration for NVIDIA Nemotron
+client = OpenAI(
+  base_url="https://openrouter.ai/api/v1",
+  api_key=OPENROUTER_API_KEY,
+)
+
+MODEL_NAME = "nvidia/nemotron-nano-12b-v2-vl:free"
 
 # ============ FastAPI & CORS + static/templates ============
 app = FastAPI()
@@ -90,11 +98,6 @@ class ExcuseInput(BaseModel):
     language: str
     style: str
 
-class ExcuseRequest(BaseModel):
-    scenario: str
-    urgency: str
-    language: str
-
 class ApologyInput(BaseModel):
     context: str
     tone: str
@@ -113,7 +116,7 @@ class ScheduleInput(BaseModel):
 class ToneAdjustInput(BaseModel):
     text: str
     tone: str
-    language: Optional[str] = "en"  # for multi-language support
+    language: Optional[str] = "en"
 
 class CompleteApologyInput(BaseModel):
     start: str
@@ -124,17 +127,13 @@ class SaveApologyText(BaseModel):
     text: str
     time: str
 
-class ScreenshotRequest(BaseModel):
-    theme: str
-
 class AutoCompleteInput(BaseModel):
     prompt: str
 
 # ============ HCTI Screenshot Utility ============
-
+# (Kept identical to previous version)
 def generate_screenshot(type="excuse"):
     content = latest_excuse if type == "excuse" else latest_apology or "No data"
-    theme = "light"  # or from frontend
     html = f"""
     <html>
       <body style="font-family: Inter; padding: 2em; background: #fff;">
@@ -143,7 +142,6 @@ def generate_screenshot(type="excuse"):
       </body>
     </html>
     """
-
     try:
         res = requests.post("https://hcti.io/v1/image", auth=(HCTI_API_USER, HCTI_API_KEY), data={"html": html})
         data = res.json()
@@ -153,56 +151,27 @@ def generate_screenshot(type="excuse"):
         return {"error": str(e)}
 
 def generate_screenshot_html(main_text, label, theme):
-    # CHANGE THIS to the absolute URL of your logo!  
     logo_url = "https://yourdomain.com/static/logo.png"
     bg_gradient = {
         "light": "linear-gradient(135deg, #fefcea 0%, #f1da36 100%)",
         "dark": "linear-gradient(135deg, #1b263b 0%, #415a77 100%)"
     }.get(theme, "linear-gradient(135deg, #fefcea 0%, #f1da36 100%)")
-
     text_color = "#fff" if theme == "dark" else "#222"
 
     html = f"""
     <div style='
-        width: 600px;
-        padding: 48px 36px;
-        border-radius: 0;
-        font-family: Inter, Rajdhani, Arial, sans-serif;
-        background: {bg_gradient};
-        box-shadow: 0 10px 40px rgba(0,0,0,0.15);
-        color: {text_color};
-        position: relative;
+        width: 600px; padding: 48px 36px; border-radius: 0; font-family: Inter, Rajdhani, Arial, sans-serif;
+        background: {bg_gradient}; box-shadow: 0 10px 40px rgba(0,0,0,0.15); color: {text_color}; position: relative;
     '>
-        <div style='
-            font-size: 14px;
-            font-weight: bold;
-            color: {text_color};
-            margin-bottom: 8px;
-            opacity: 0.8;
-        '>{label} – Intelligent Excuse Generator</div>
-        <div style='
-            font-size: 24px;
-            font-weight: 700;
-            line-height: 1.4;
-        '>{main_text}</div>
+        <div style='font-size: 14px; font-weight: bold; color: {text_color}; margin-bottom: 8px; opacity: 0.8;'>{label} – Intelligent Excuse Generator</div>
+        <div style='font-size: 24px; font-weight: 700; line-height: 1.4;'>{main_text}</div>
         <img src="{logo_url}" style="position:absolute;bottom:20px;left:20px;width:50px;opacity:0.85;" />
-        <div style='
-            position: absolute;
-            bottom: 18px;
-            right: 24px;
-            font-size: 12px;
-            opacity: 0.6;
-        '>Generated on {datetime.now().strftime('%Y-%m-%d')}</div>
+        <div style='position: absolute; bottom: 18px; right: 24px; font-size: 12px; opacity: 0.6;'>Generated on {datetime.now().strftime('%Y-%m-%d')}</div>
     </div>
     """
     api_url = 'https://hcti.io/v1/image'
-    data = {
-        'html': html,
-        'css': '',
-        'google_fonts': 'Inter:700;Rajdhani:700'
-    }
     try:
-        response = requests.post(api_url, data=data, auth=(HCTI_API_USER, HCTI_API_KEY))
+        response = requests.post(api_url, data={'html': html, 'css': '', 'google_fonts': 'Inter:700;Rajdhani:700'}, auth=(HCTI_API_USER, HCTI_API_KEY))
         if response.status_code != 200:
             raise HTTPException(status_code=500, detail="Screenshot generation failed (HCTI): " + response.text)
         image_url = response.json()["url"]
@@ -220,6 +189,7 @@ def serve_ui(request: Request):
 @app.post("/api/excuse")
 def generate_excuse_from_openai(payload: ExcuseInput):
     global latest_text, latest_label, latest_excuse
+    # NOTE: ensure generate_excuse in utils/openai_handler.py is updated to use OpenRouter!
     english, translated = generate_excuse(
         payload.scenario, payload.urgency, payload.language, payload.style
     )
@@ -229,6 +199,8 @@ def generate_excuse_from_openai(payload: ExcuseInput):
     excuse_history.append({"text": english, "time": time_now})
     with open("latest_excuse.txt", "w", encoding="utf-8") as f:
         f.write(english)
+    
+    # Ranking Logic
     with open(EXCUSE_SCORE_FILE, "r+", encoding="utf-8") as f:
         try:
             scores = json.load(f)
@@ -236,39 +208,30 @@ def generate_excuse_from_openai(payload: ExcuseInput):
             scores = {}
         entry = scores.get(english, {"count": 0, "urgency_score": 0, "favorited": False})
         entry["count"] += 1
-        if payload.urgency == "high":
-            entry["urgency_score"] += 2
-        elif payload.urgency == "critical":
-            entry["urgency_score"] += 4
-        elif payload.urgency == "medium":
-            entry["urgency_score"] += 1
+        if payload.urgency == "high": entry["urgency_score"] += 2
+        elif payload.urgency == "critical": entry["urgency_score"] += 4
+        elif payload.urgency == "medium": entry["urgency_score"] += 1
         scores[english] = entry
-        f.seek(0)
-        f.truncate()
-        json.dump(scores, f, indent=2, ensure_ascii=False)
+        f.seek(0); f.truncate(); json.dump(scores, f, indent=2, ensure_ascii=False)
+    
+    # Calendar Logic
     now = datetime.now()
     entry = {"text": english, "date": now.strftime("%Y-%m-%d"), "time": now.strftime("%I:%M:%S %p")}
     with open(EXCUSE_CAL_FILE, "r+", encoding="utf-8") as f:
         try:
             data = json.load(f)
-            if not isinstance(data, list):
-                data = []
+            if not isinstance(data, list): data = []
         except Exception:
             data = []
         data.append(entry)
-        f.seek(0)
-        f.truncate()
-        json.dump(data, f, indent=2)
+        f.seek(0); f.truncate(); json.dump(data, f, indent=2)
     latest_excuse = english
-    return {
-        "label": "Excuse",
-        "english": english,
-        "translated": translated
-    }
+    return {"label": "Excuse", "english": english, "translated": translated}
 
 @app.post("/api/apology")
 def create_apology(payload: ApologyInput):
     global latest_text, latest_label, latest_apology
+    # NOTE: ensure generate_apology in utils/openai_handler.py is updated to use OpenRouter!
     english, translated = generate_apology(payload.context, payload.tone, payload.type, payload.style, payload.language)
     latest_text = english
     latest_label = "Apology"
@@ -276,6 +239,8 @@ def create_apology(payload: ApologyInput):
     with open("latest_apology.txt", "w", encoding="utf-8") as f:
         f.write(english)
     apology_history.append({"text": english, "time": datetime.now().strftime("%Y-%m-%d %H:%M")})
+    
+    # Scoring Logic
     with open(APOLOGY_SCORE_FILE, "r+", encoding="utf-8") as f:
         try:
             scores = json.load(f)
@@ -284,9 +249,9 @@ def create_apology(payload: ApologyInput):
         entry = scores.get(english, {"count": 0})
         entry["count"] += 1
         scores[english] = entry
-        f.seek(0)
-        f.truncate()
-        json.dump(scores, f, indent=2, ensure_ascii=False)
+        f.seek(0); f.truncate(); json.dump(scores, f, indent=2, ensure_ascii=False)
+    
+    # Calendar Logic
     now = datetime.now()
     cal_entry = {"text": english, "date": now.strftime("%Y-%m-%d"), "time": now.strftime("%I:%M %p")}
     with open(APOLOGY_CAL_FILE, "r+", encoding="utf-8") as f:
@@ -295,9 +260,7 @@ def create_apology(payload: ApologyInput):
         except:
             data = []
         data.append(cal_entry)
-        f.seek(0)
-        f.truncate()
-        json.dump(data, f, indent=2)
+        f.seek(0); f.truncate(); json.dump(data, f, indent=2)
     return {"message": english, "translated": translated}
 
 @app.get("/api/history")
@@ -315,12 +278,7 @@ def api_excuse_calendar():
 @app.get("/api/screenshot", response_class=FileResponse)
 def download_screenshot():
     file_path = "static/screenshot.png"
-    return FileResponse(
-        path=file_path,
-        media_type="image/png",
-        filename="excuse.png",
-        headers={"Access-Control-Allow-Origin": "*"},
-    )
+    return FileResponse(path=file_path, media_type="image/png", filename="excuse.png", headers={"Access-Control-Allow-Origin": "*"})
 
 @app.get("/api/favorites")
 def api_excuse_favorites():
@@ -329,18 +287,14 @@ def api_excuse_favorites():
 @app.post("/api/favorite")
 def api_add_excuse_fav():
     global latest_text, latest_label
-    if not latest_text or latest_label != "Excuse":
-        return {"message": "⚠️ Already in favourites or nothing to add."}
-    if latest_text in favorite_excuses:
-        return {"message": "⚠️ Already in favourites or nothing to add."}
+    if not latest_text or latest_label != "Excuse": return {"message": "⚠️ Already in favourites or nothing to add."}
+    if latest_text in favorite_excuses: return {"message": "⚠️ Already in favourites or nothing to add."}
     favorite_excuses.append(latest_text)
     try:
         with open(EXCUSE_SCORE_FILE, "r+", encoding="utf-8") as fh:
             scores = json.load(fh)
             scores.setdefault(latest_text, {}).update({"favorited": True})
-            fh.seek(0)
-            fh.truncate()
-            json.dump(scores, fh, indent=2)
+            fh.seek(0); fh.truncate(); json.dump(scores, fh, indent=2)
     except Exception:
         pass
     return {"message": "✅ Excuse added to favourites!"}
@@ -348,16 +302,15 @@ def api_add_excuse_fav():
 def trigger_emergency_internal(recipient_override: dict | None = None):
     excuse  = open("latest_excuse.txt", "r", encoding="utf-8").read().strip() if os.path.exists("latest_excuse.txt") else "No excuse."
     apology = open("latest_apology.txt", "r", encoding="utf-8").read().strip() if os.path.exists("latest_apology.txt") else "No apology."
-    EMAIL_SENDER    = os.getenv("EMAIL_USERNAME")
-    EMAIL_PASSWORD  = os.getenv("EMAIL_PASSWORD")
+    EMAIL_SENDER     = os.getenv("EMAIL_USERNAME")
     default_list = [r.strip() for r in os.getenv("EMAIL_RECIPIENTS", "").split(",") if r.strip()]
     input_list = []
     if recipient_override and recipient_override.get("email"):
         input_str = recipient_override["email"]
         input_list = [r.strip() for r in input_str.split(",") if r.strip()]
     recipients = input_list if input_list else default_list
-    if not recipients:
-        recipients = [EMAIL_SENDER]
+    if not recipients: recipients = [EMAIL_SENDER]
+    
     def send_email():
         uid   = uuid.uuid4().hex[:8]
         stamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -377,6 +330,7 @@ def trigger_emergency_internal(recipient_override: dict | None = None):
                 smtp.send_message(msg)
         except Exception as e:
             print("❌ Email error:", e)
+            
     def play_siren():
         try:
             import pygame
@@ -386,13 +340,9 @@ def trigger_emergency_internal(recipient_override: dict | None = None):
             pygame.mixer.music.play()
         except Exception as e:
             print("❌ Sound error:", e)
+            
     def log_event():
-        entry = {
-            "timestamp": str(datetime.now()),
-            "excuse": excuse,
-            "apology": apology,
-            "recipients": recipients
-        }
+        entry = {"timestamp": str(datetime.now()), "excuse": excuse, "apology": apology, "recipients": recipients}
         try:
             logf = "emergency_log.json"
             data = json.load(open(logf, "r", encoding="utf-8")) if os.path.exists(logf) else []
@@ -400,6 +350,7 @@ def trigger_emergency_internal(recipient_override: dict | None = None):
             json.dump(data, open(logf, "w", encoding="utf-8"), indent=2, ensure_ascii=False)
         except Exception as e:
             print("❌ Logging error:", e)
+            
     import threading
     threading.Thread(target=send_email).start()
     threading.Thread(target=play_siren).start()
@@ -429,9 +380,7 @@ def save_apology_history(payload: SaveApologyText):
         except:
             data = []
         data.append(cal_entry)
-        f.seek(0)
-        f.truncate()
-        json.dump(data, f, indent=2)
+        f.seek(0); f.truncate(); json.dump(data, f, indent=2)
     return {"message": "✅ Apology saved to history and calendar."}
 
 @app.get("/api/apology-calendar")
@@ -445,10 +394,8 @@ def api_apology_calendar():
 @app.post("/api/apology-favorite")
 def api_save_apology_fav():
     global latest_text, latest_label
-    if not latest_text or latest_label != "Apology":
-        return {"message": "⚠️ No apology to save."}
-    if latest_text in favorite_apologies:
-        return {"message": "⚠️ Already in favourites."}
+    if not latest_text or latest_label != "Apology": return {"message": "⚠️ No apology to save."}
+    if latest_text in favorite_apologies: return {"message": "⚠️ Already in favourites."}
     favorite_apologies.append(latest_text)
     try:
         with open(APOLOGY_SCORE_FILE, "r+", encoding="utf-8") as fh:
@@ -458,9 +405,7 @@ def api_save_apology_fav():
                 scores = {}
             scores.setdefault(latest_text, {"count": 0, "favorited": False})
             scores[latest_text]["favorited"] = True
-            fh.seek(0)
-            fh.truncate()
-            json.dump(scores, fh, indent=2)
+            fh.seek(0); fh.truncate(); json.dump(scores, fh, indent=2)
     except Exception as e:
         print("⚠️ Failed to update score:", e)
     return {"message": "✅ Apology added to favourites!"}
@@ -480,26 +425,16 @@ def api_top_apologies():
         usage_count = meta.get("count", 0)
         tone_bonus = 0
         text_lower = txt.lower()
-        if any(word in text_lower for word in ["deeply", "sincerely", "truly", "heartfelt"]):
-            tone_bonus += 2
-        if any(word in text_lower for word in ["sorry", "apologize", "regret", "mistake"]):
-            tone_bonus += 1
+        if any(word in text_lower for word in ["deeply", "sincerely", "truly", "heartfelt"]): tone_bonus += 2
+        if any(word in text_lower for word in ["sorry", "apologize", "regret", "mistake"]): tone_bonus += 1
         length_bonus = min(len(txt) // 100, 3)
         favorite_bonus = 2 if meta.get("favorited", False) else 0
         recency_bonus = 1 if usage_count > 0 else 0
         final_score = usage_count + tone_bonus + length_bonus + favorite_bonus + recency_bonus
         ranked.append({
-            "text": txt,
-            "score": final_score,
-            "count": usage_count,
+            "text": txt, "score": final_score, "count": usage_count,
             "favorited": meta.get("favorited", False),
-            "breakdown": {
-                "usage": usage_count,
-                "tone": tone_bonus,
-                "length": length_bonus,
-                "favorite": favorite_bonus,
-                "recency": recency_bonus
-            }
+            "breakdown": {"usage": usage_count, "tone": tone_bonus, "length": length_bonus, "favorite": favorite_bonus, "recency": recency_bonus}
         })
     ranked.sort(key=lambda x: (x["score"], x["count"]), reverse=True)
     return ranked
@@ -516,11 +451,7 @@ def api_excuse_rankings():
     except Exception:
         return []
     ranked = [
-        {
-            "text": txt,
-            "score": info.get("count", 0) + info.get("urgency_score", 0) + (3 if info.get("favorited") else 0),
-            "count": info.get("count", 0)
-        }
+        {"text": txt, "score": info.get("count", 0) + info.get("urgency_score", 0) + (3 if info.get("favorited") else 0), "count": info.get("count", 0)}
         for txt, info in data.items()
     ]
     ranked.sort(key=lambda x: x["score"], reverse=True)
@@ -533,10 +464,7 @@ def api_clear_excuse_rankings():
 
 @app.get("/proof", response_class=HTMLResponse)
 def show_proof(request: Request):
-    return templates.TemplateResponse(
-        "proof.html",
-        {"request": request, "message": latest_text, "label": latest_label}
-    )
+    return templates.TemplateResponse("proof.html", {"request": request, "message": latest_text, "label": latest_label})
 
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
@@ -544,76 +472,20 @@ async def log_requests(request: Request, call_next):
     return await call_next(request)
 
 def render_screenshot_html(text, mode):
-    from datetime import datetime
     timestamp = datetime.now().strftime("%B %d, %Y %I:%M %p")
-    color = "#60a5fa" if mode == "Apology" else "#f87171"  # blue or red
-
+    color = "#60a5fa" if mode == "Apology" else "#f87171"
     return f"""
     <html>
       <head>
         <meta charset="UTF-8" />
         <style>
           @import url('https://fonts.googleapis.com/css2?family=Inter:wght@600;700&display=swap');
-
-          body {{
-            margin: 0;
-            padding: 0;
-            background: linear-gradient(135deg, #cad9ed 0%, #a6c4ed 100%);
-            height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-family: 'Inter', sans-serif;
-          }}
-
-          .card {{
-            width: 1080px;
-            height: 720px;
-            padding: 64px 56px;
-            border-radius: 28px;
-            background: linear-gradient(135deg, #1b263b 0%, #415a77 100%);
-            box-shadow: 0 14px 48px rgba(0, 0, 0, 0.25);
-            color: #ffffff;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            position: relative;
-            text-align: center;
-          }}
-
-          .header {{
-            font-size: 30px;
-            font-weight: 700;
-            color: {color};
-            margin-bottom: 8px;
-          }}
-
-          .subheader {{
-            font-size: 30px;
-            font-weight: 600;
-            color: #ffffff;
-            opacity: 0.9;
-            margin-bottom: 36px;
-          }}
-
-          .text {{
-            font-size: 50px;
-            font-weight: 600;
-            line-height: 1.8;
-            color: #f8fafc;
-            white-space: pre-line;
-            max-width: 90%;
-          }}
-
-          .timestamp {{
-            position: absolute;
-            bottom: 26px;
-            right: 32px;
-            font-size: 13px;
-            color: #cbd5e1;
-            opacity: 0.6;
-          }}
+          body {{ margin: 0; padding: 0; background: linear-gradient(135deg, #cad9ed 0%, #a6c4ed 100%); height: 100vh; display: flex; justify-content: center; align-items: center; font-family: 'Inter', sans-serif; }}
+          .card {{ width: 1080px; height: 720px; padding: 64px 56px; border-radius: 28px; background: linear-gradient(135deg, #1b263b 0%, #415a77 100%); box-shadow: 0 14px 48px rgba(0, 0, 0, 0.25); color: #ffffff; display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative; text-align: center; }}
+          .header {{ font-size: 30px; font-weight: 700; color: {color}; margin-bottom: 8px; }}
+          .subheader {{ font-size: 30px; font-weight: 600; color: #ffffff; opacity: 0.9; margin-bottom: 36px; }}
+          .text {{ font-size: 50px; font-weight: 600; line-height: 1.8; color: #f8fafc; white-space: pre-line; max-width: 90%; }}
+          .timestamp {{ position: absolute; bottom: 26px; right: 32px; font-size: 13px; color: #cbd5e1; opacity: 0.6; }}
         </style>
       </head>
       <body>
@@ -627,66 +499,47 @@ def render_screenshot_html(text, mode):
     </html>
     """
 
-
 @app.post("/api/screenshot-excuse")
 def screenshot_excuse():
     try:
-        if not latest_excuse:
-            return {"error": "No excuse available to screenshot."}
-
+        if not latest_excuse: return {"error": "No excuse available to screenshot."}
         html = render_screenshot_html("Excuse", latest_excuse)
-
-        res = requests.post(
-            "https://hcti.io/v1/image",
-            data={"html": html},
-            auth=(HCTI_API_USER, HCTI_API_KEY),
-        )
-
+        res = requests.post("https://hcti.io/v1/image", data={"html": html}, auth=(HCTI_API_USER, HCTI_API_KEY))
         link = res.json().get("url", "")
         return {"url": link}
-
     except Exception as e:
         print("❌ Screenshot Excuse Error:", e)
         return {"error": str(e)}
 
-
 @app.post("/api/screenshot-apology")
 def screenshot_apology():
     try:
-        if not latest_apology:
-            return {"error": "No apology available to screenshot."}
-
+        if not latest_apology: return {"error": "No apology available to screenshot."}
         html = render_screenshot_html("Apology", latest_apology)
-
-        res = requests.post(
-            "https://hcti.io/v1/image",
-            data={"html": html},
-            auth=(HCTI_API_USER, HCTI_API_KEY),
-        )
-
+        res = requests.post("https://hcti.io/v1/image", data={"html": html}, auth=(HCTI_API_USER, HCTI_API_KEY))
         link = res.json().get("url", "")
         return {"url": link}
-
     except Exception as e:
         print("❌ Screenshot Apology Error:", e)
         return {"error": str(e)}
 
+# ============ UPDATED OPENROUTER ENDPOINTS ============
 
 @app.post("/api/adjust-tone")
 def adjust_tone(payload: dict = Body(...)):
     sentence = payload.get("sentence", "")
     tone = payload.get("tone", "formal")
-
-    if not sentence:
-        return {"error": "No sentence provided"}
-
+    if not sentence: return {"error": "No sentence provided"}
+    
     prompt = f"Rephrase the following text in a {tone.lower()} tone:\n\n{sentence}\n\nDo not add any extra commentary, timestamps, or headings."
-
+    
     try:
+        # Using OpenRouter + Nemotron with Reasoning
         res = client.chat.completions.create(
-            model="gpt-4o",
+            model=MODEL_NAME,
             messages=[{"role": "user", "content": prompt}],
             temperature=0.7,
+            extra_body={"reasoning": {"enabled": True}}
         )
         return {
             "adjusted": res.choices[0].message.content.strip(),
@@ -697,35 +550,31 @@ def adjust_tone(payload: dict = Body(...)):
     
 @app.post("/api/complete-apology")
 def complete_apology(payload: dict = Body(...)):
-    from datetime import datetime
     import re
-
     start = payload.get("start", "").strip()
     tone = payload.get("tone", "formal").strip()
-
-    if not start:
-        return {"error": "No start provided"}
-
+    if not start: return {"error": "No start provided"}
+    
     prompt = f"Complete this sentence in a {tone.lower()} apology tone:\n\n{start}"
-
+    
     try:
+        # Using OpenRouter + Nemotron with Reasoning
         res = client.chat.completions.create(
-            model="gpt-4o",
+            model=MODEL_NAME,
             messages=[{"role": "user", "content": prompt}],
             temperature=0.7,
+            extra_body={"reasoning": {"enabled": True}}
         )
         continuation = res.choices[0].message.content.strip()
-
-        def normalize(text):
-            return re.sub(r'[^\w\s]', '', text).lower().strip()
-
+        
+        # Helper to avoid doubling up words
+        def normalize(text): return re.sub(r'[^\w\s]', '', text).lower().strip()
         norm_start = normalize(start)
         norm_cont = normalize(continuation)
-
+        
         if norm_cont.startswith(norm_start):
             lower_cont = continuation.lower()
             lower_start = start.lower()
-
             if lower_cont.startswith(lower_start):
                 trimmed = continuation[len(start):].lstrip(" ,.:;\n")
                 full_apology = f"{start} {trimmed}"
@@ -733,7 +582,7 @@ def complete_apology(payload: dict = Body(...)):
                 full_apology = continuation
         else:
             full_apology = f"{continuation}"
-
+            
         return {"completed": full_apology}
     except Exception as e:
         return {"error": str(e)}
@@ -758,20 +607,22 @@ def api_guilt_score(payload: dict = Body(...)):
         "----\nNow respond:"
     )
     try:
+        # Using OpenRouter + Nemotron with Reasoning
         res = client.chat.completions.create(
-            model="gpt-4o",
+            model=MODEL_NAME,
             messages=[{"role": "user", "content": prompt}],
             temperature=1.0,
             top_p=0.95,
+            extra_body={"reasoning": {"enabled": True}}
         )
         raw = res.choices[0].message.content.strip()
         import re
         try:
             data = json.loads(raw)
         except json.JSONDecodeError:
+            # Fallback regex if reasoning text bleeds into content
             m = re.search(r'"score"\s*:\s*(\d+).*"reason"\s*:\s*"([^"]+)', raw, re.S)
-            if not m:
-                return {"error": "Bad format from model", "raw": raw}
+            if not m: return {"error": "Bad format from model", "raw": raw}
             data = {"score": int(m.group(1)), "reason": m.group(2)}
         return {"feedback": f'{data["score"]}/100 – {data["reason"]}'}
     except Exception as e:
@@ -784,8 +635,7 @@ def api_memory_lookup(q: str):
     try:
         with shelve.open("memory.db") as memory_db:
             for kw, excuses in memory_db.items():
-                if q in kw:
-                    hits.extend(excuses)
+                if q in kw: hits.extend(excuses)
     except Exception as e:
         return {"error": f"Memory DB access failed: {str(e)}"}
     return {"matches": list(dict.fromkeys(hits))[:5]}
@@ -794,8 +644,7 @@ def api_memory_lookup(q: str):
 def schedule_emergency(input: ScheduleInput):
     try:
         dt = datetime.strptime(f"{input.date} {input.time}", "%Y-%m-%d %H:%M")
-        if dt <= datetime.now():
-            raise ValueError("Scheduled time must be in the future")
+        if dt <= datetime.now(): raise ValueError("Scheduled time must be in the future")
         job_id = uuid.uuid4().hex[:8]
         scheduler.add_job(
             func=trigger_emergency_internal,
@@ -810,8 +659,7 @@ def schedule_emergency(input: ScheduleInput):
 
 def fallback_calendar_sync():
     global latest_text, latest_label
-    if not latest_text:
-        return
+    if not latest_text: return
     target = EXCUSE_CAL_FILE if latest_label == "Excuse" else APOLOGY_CAL_FILE
     now = datetime.now()
     entry = {"text": latest_text, "date": now.strftime("%Y-%m-%d"), "time": now.strftime("%I:%M %p")}
@@ -844,18 +692,12 @@ def update_latest_apology(payload: dict = Body(...)):
         latest_text = apology_text
         latest_label = "Apology"
         now = datetime.now()
-        cal_entry = {
-            "text": apology_text,
-            "date": now.strftime("%Y-%m-%d"),
-            "time": now.strftime("%I:%M %p")
-        }
+        cal_entry = {"text": apology_text, "date": now.strftime("%Y-%m-%d"), "time": now.strftime("%I:%M %p")}
         try:
             with open(APOLOGY_CAL_FILE, "r+", encoding="utf-8") as f:
                 data = json.load(f)
                 data.append(cal_entry)
-                f.seek(0)
-                f.truncate()
-                json.dump(data, f, indent=2)
+                f.seek(0); f.truncate(); json.dump(data, f, indent=2)
         except Exception:
             with open(APOLOGY_CAL_FILE, "w", encoding="utf-8") as f:
                 json.dump([cal_entry], f, indent=2)

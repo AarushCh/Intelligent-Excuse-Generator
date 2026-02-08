@@ -1,14 +1,18 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <title>Intelligent Excuse Generator</title>
   <link rel="icon" type="image/png" href="/static/favicon.png" />
   <link rel="manifest" href="/static/manifest.json" />
   <!-- Full Inter and Rajdhani fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Rajdhani:wght@500;700&display=swap"
+    rel="stylesheet">
   <link rel="stylesheet" href="static/style.css">
 </head>
+
 <body>
   <!-- Video Background Container -->
   <div class="video-background">
@@ -36,7 +40,8 @@
     <!-- EXCUSE FORM -->
     <label for="scenario">Scenario:</label>
     <input id="scenario" placeholder="Type your excuse scenario here…" />
-    <ul id="memorySuggest" style="display:none;margin:4px 0 8px;padding:6px 10px;background:#f1f1f1;border-radius:8px;font-size:14px"></ul>
+    <ul id="memorySuggest"
+      style="display:none;margin:4px 0 8px;padding:6px 10px;background:#f1f1f1;border-radius:8px;font-size:14px"></ul>
 
     <label for="urgency">Urgency:</label>
     <select id="urgency">
@@ -187,11 +192,14 @@
     <hr />
 
     <div style="display: flex; justify-content: center; gap: 10px; margin-top: 16px;">
-      <button id="btnExcuseShot" class="teal action-btn" onclick="generateScreenshot('excuse')">📸 Screenshot Excuse</button>
-      <button id="btnApologyShot" class="teal action-btn" onclick="generateScreenshot('apology')">📸 Screenshot Apology</button>
+      <button id="btnExcuseShot" class="teal action-btn" onclick="generateScreenshot('excuse')">📸 Screenshot
+        Excuse</button>
+      <button id="btnApologyShot" class="teal action-btn" onclick="generateScreenshot('apology')">📸 Screenshot
+        Apology</button>
     </div>
 
-    <img id="proofImg" style="display:none;margin:10px auto;max-width:90%;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.2);" />
+    <img id="proofImg"
+      style="display:none;margin:10px auto;max-width:90%;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.2);" />
     <button id="downloadBtn" class="teal action-btn" style="display:none;">Download Image</button>
 
   </div>
@@ -284,7 +292,7 @@
     function playClickSound() {
       const sound = document.getElementById('clickSound');
       if (sound) {
-        sound.play().catch(() => {}); // Silently ignore audio errors
+        sound.play().catch(() => { }); // Silently ignore audio errors
       }
     }
 
@@ -292,7 +300,7 @@
       const theme = document.getElementById("screenshotTheme").value || "light";
       const btnId = type === 'excuse' ? 'btnExcuseShot' : 'btnApologyShot';
       const btn = document.getElementById(btnId);
-      
+
       btn.classList.add('screenshot-loading');
       btn.disabled = true;
 
@@ -387,7 +395,7 @@
       personalElements.forEach(el => {
         el.style.display = 'none';
       });
-      
+
       const genericWatermark = document.createElement('div');
       genericWatermark.className = 'demo-watermark';
       genericWatermark.textContent = 'Intelligent Excuse Generator';
@@ -407,26 +415,26 @@
       document.body.appendChild(genericWatermark);
     }
 
-    if (navigator.userAgent.includes('Screenshot') || 
-        window.location.search.includes('screenshot=true')) {
+    if (navigator.userAgent.includes('Screenshot') ||
+      window.location.search.includes('screenshot=true')) {
       prepareForScreenshot();
     }
 
-    function generateScreenshot(type){
+    function generateScreenshot(type) {
       const theme = document.getElementById("screenshotTheme").value || "light";
       fetch(`/api/screenshot/${type}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ theme: theme })
       })
-      .then(async res => {
-        const blob = await res.blob();
-        const url = URL.createObjectURL(blob);
-        document.getElementById("proofImg").src = url;
-        document.getElementById("proofImg").style.display = "block";
-        document.getElementById("downloadBtn").style.display = "inline-block";
-        window.screenshotUrl = url;
-      });
+        .then(async res => {
+          const blob = await res.blob();
+          const url = URL.createObjectURL(blob);
+          document.getElementById("proofImg").src = url;
+          document.getElementById("proofImg").style.display = "block";
+          document.getElementById("downloadBtn").style.display = "inline-block";
+          window.screenshotUrl = url;
+        });
     }
 
     function getExcuse() {
@@ -434,7 +442,7 @@
       const urgencyEl = document.getElementById('urgency');
       const languageEl = document.getElementById('language');
       const excuseStyleEl = document.getElementById('excuseStyle');
-      
+
       if (!scenarioEl || !urgencyEl || !languageEl || !excuseStyleEl) {
         alert("Form elements not found");
         return;
@@ -491,12 +499,12 @@
       const typeEl = document.getElementById('messageType');
       const styleEl = document.getElementById('apologyStyle');
       const languageEl = document.getElementById('language');
-      
+
       if (!contextEl || !toneEl || !typeEl || !styleEl || !languageEl) {
         alert("Form elements not found");
         return;
       }
-      
+
       const body = {
         context: contextEl.value,
         tone: toneEl.value,
@@ -510,23 +518,23 @@
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       })
-      .then((r) => r.json())
-      .then((o) => {
-        const now = new Date().toLocaleString();
-        const apologyOut = document.getElementById('apologyOut');
-        const translatedOut = document.getElementById('translatedOut');
-        
-        if (apologyOut) {
-          apologyOut.innerHTML = `<strong>${now}</strong><br>${o.message}`;
-        }
-        if (translatedOut) {
-          translatedOut.innerText = languageEl.value !== "en" ? "Translation: " + o.translated : "";
-        }
-      })
-      .catch((error) => {
-        console.error('Apology generation error:', error);
-        alert("Failed to generate apology");
-      });
+        .then((r) => r.json())
+        .then((o) => {
+          const now = new Date().toLocaleString();
+          const apologyOut = document.getElementById('apologyOut');
+          const translatedOut = document.getElementById('translatedOut');
+
+          if (apologyOut) {
+            apologyOut.innerHTML = `<strong>${now}</strong><br>${o.message}`;
+          }
+          if (translatedOut) {
+            translatedOut.innerText = languageEl.value !== "en" ? "Translation: " + o.translated : "";
+          }
+        })
+        .catch((error) => {
+          console.error('Apology generation error:', error);
+          alert("Failed to generate apology");
+        });
     }
 
     async function generateScreenshot(mode) {
@@ -737,22 +745,22 @@
     // Save apology to all systems
     function saveApologyToAllSystems(apologyText) {
       if (!apologyText) return;
-      
+
       const timeString = new Date().toLocaleString();
-      
+
       // Save to history
       fetch("/api/save-apology-history", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           text: apologyText,
           time: timeString
         })
       }).catch(console.error);
-      
+
       // Update latest apology
       fetch("/api/update-latest-apology", {
-        method: "POST", 
+        method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text: apologyText })
       }).catch(console.error);
@@ -776,13 +784,13 @@
         alert("Apology element not found");
         return;
       }
-      
+
       const cur = apologyOut.innerText.trim();
       if (!cur) {
         alert("Nothing to save");
         return;
       }
-      
+
       fetch("/api/apology-favorite", { method: "POST" })
         .then(r => r.json())
         .then(d => alert(d.message || "Done"))
@@ -829,20 +837,19 @@
         .then((data) => {
           const rankingsList = document.getElementById('rankingsList');
           if (!rankingsList) return;
-          
+
           if (!data.length) {
             rankingsList.innerHTML =
               "<p style='text-align:center;color:#666;font-style:italic'>No top excuses yet.</p>";
             return;
           }
-          
+
           rankingsList.innerHTML = "";
           data.forEach((item, idx) => {
             const li = document.createElement("li");
-            li.innerHTML = `<span class="count-badge">🧠${item.score}</span> ${
-              ["🥇", "🥈", "🥉"][idx] || "🎖"
-            } ${item.text}`;
-            
+            li.innerHTML = `<span class="count-badge">🧠${item.score}</span> ${["🥇", "🥈", "🥉"][idx] || "🎖"
+              } ${item.text}`;
+
             const prevIndex = prevRanks.findIndex((p) => p.text === item.text);
             if (prevIndex !== -1 && idx < prevIndex) {
               li.classList.add("rank-up");
@@ -947,23 +954,23 @@
 
           downloadBtn.style.display = "inline-block";
           downloadBtn.onclick = async () => {
-          try {
-            const response = await fetch(data.url);
-            const blob = await response.blob();
-            const blobUrl = URL.createObjectURL(blob);
+            try {
+              const response = await fetch(data.url);
+              const blob = await response.blob();
+              const blobUrl = URL.createObjectURL(blob);
 
-            const link = document.createElement("a");
-            link.href = blobUrl;
-            link.download = `${type}_proof_${Date.now()}.png`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            URL.revokeObjectURL(blobUrl);
-          } catch (err) {
-            console.error("Download failed:", err);
-            alert("❌ Could not download image.");
-          }
-        };
+              const link = document.createElement("a");
+              link.href = blobUrl;
+              link.download = `${type}_proof_${Date.now()}.png`;
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+              URL.revokeObjectURL(blobUrl);
+            } catch (err) {
+              console.error("Download failed:", err);
+              alert("❌ Could not download image.");
+            }
+          };
         } else {
           console.error("Screenshot failed:", data.error || "No URL returned");
           alert("❌ Screenshot failed.");
@@ -981,18 +988,18 @@
     // Build calendar markup
     function buildCalendarMarkup(target, data) {
       if (!target) return;
-      
+
       const grouped = {};
       data.forEach((i) => (grouped[i.date] ??= []).push(i));
-      
+
       target.innerHTML = Object.keys(grouped).length
         ? Object.keys(grouped)
-            .map((d) =>
-              `<h4>${d}</h4><ul>${grouped[d]
-                .map((i) => `<li><strong>${i.time}</strong> – ${i.text}</li>`)
-                .join("")}</ul>`
-            )
-            .join("")
+          .map((d) =>
+            `<h4>${d}</h4><ul>${grouped[d]
+              .map((i) => `<li><strong>${i.time}</strong> – ${i.text}</li>`)
+              .join("")}</ul>`
+          )
+          .join("")
         : "<p style='text-align:center;color:#666;font-style:italic'>No records yet.</p>";
     }
 
@@ -1014,14 +1021,14 @@
     // Save to apology history
     function saveToApologyHistory(text) {
       if (!text.trim()) return;
-      
+
       fetch("/api/save-apology-history", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text }),
       })
-      .then(() => loadApologyHistory())
-      .catch(console.error);
+        .then(() => loadApologyHistory())
+        .catch(console.error);
     }
 
     // Show guilt score
@@ -1031,13 +1038,13 @@
         alert("Apology element not found");
         return;
       }
-      
+
       const txt = apologyOut.innerText.trim();
       if (!txt) {
         alert("No apology found!");
         return;
       }
-      
+
       fetch("/api/guilt-score", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1068,20 +1075,19 @@
         .then((d) => {
           const apolTopList = document.getElementById('apolTopList');
           if (!apolTopList) return;
-          
+
           if (!d.length) {
             apolTopList.innerHTML =
               "<p style='text-align:center;color:#666;font-style:italic'>No top apologies yet.</p>";
             return;
           }
-          
+
           apolTopList.innerHTML = "";
           d.forEach((item, idx) => {
             const li = document.createElement("li");
-            li.innerHTML = `<span class="count-badge">🧠 ${item.score}</span> ${
-              ["🥇", "🥈", "🥉"][idx] || "🎖"
-            } ${item.text}`;
-            
+            li.innerHTML = `<span class="count-badge">🧠 ${item.score}</span> ${["🥇", "🥈", "🥉"][idx] || "🎖"
+              } ${item.text}`;
+
             const prevIndex = prevApologyRanks.findIndex((p) => p.text === item.text);
             if (prevIndex !== -1 && idx < prevIndex) {
               li.classList.add("rank-up");
@@ -1096,7 +1102,7 @@
     // Clear functions
     function clearTopExcuses() {
       if (!confirm("Erase all top excuses?")) return;
-      
+
       fetch("/api/clear-rankings", { method: "POST" })
         .then(loadRankings)
         .catch(console.error);
@@ -1104,7 +1110,7 @@
 
     function clearTopApologies() {
       if (!confirm("Erase all top apologies?")) return;
-      
+
       fetch("/api/clear-apology-rankings", { method: "POST" })
         .then(loadTopApologies)
         .catch(console.error);
@@ -1114,10 +1120,10 @@
     function collectDestinations() {
       const recipientEmail = document.getElementById('recipientEmail');
       const scheduleRecipients = document.getElementById('scheduleRecipients');
-      
+
       return {
-        email: ((recipientEmail ? recipientEmail.value : '') || 
-                (scheduleRecipients ? scheduleRecipients.value : '') || '').trim(),
+        email: ((recipientEmail ? recipientEmail.value : '') ||
+          (scheduleRecipients ? scheduleRecipients.value : '') || '').trim(),
       };
     }
 
@@ -1128,23 +1134,23 @@
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(collectDestinations()),
       })
-      .then(() => alert("🚨 Emergency Triggered"))
-      .catch((error) => {
-        console.error('Emergency trigger error:', error);
-        alert("Failed to trigger emergency");
-      });
+        .then(() => alert("🚨 Emergency Triggered"))
+        .catch((error) => {
+          console.error('Emergency trigger error:', error);
+          alert("Failed to trigger emergency");
+        });
     }
 
     // Schedule emergency
     function scheduleEmergency() {
       const scheduleDate = document.getElementById('scheduleDate');
       const scheduleTime = document.getElementById('scheduleTime');
-      
+
       if (!scheduleDate || !scheduleTime || !scheduleDate.value || !scheduleTime.value) {
         alert("Pick date & time");
         return;
       }
-      
+
       fetch("/api/schedule", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1212,40 +1218,40 @@
       const videoSource = document.getElementById("video-source");
       const videoSourceWebm = document.getElementById("video-source-webm");
       const backgroundVideo = document.getElementById("background-video");
-      
+
       const isDarkMode = localStorage.getItem("darkMode") === "enabled";
-      
+
       if (themeToggle && themeLabel) {
         themeToggle.checked = isDarkMode;
         themeLabel.textContent = isDarkMode ? "🌙 Dark Mode" : "🌞 Light Mode";
       }
-      
+
       if (isDarkMode) {
         document.body.classList.add("dark");
         if (videoSource) videoSource.src = "/static/background-dark.mp4";
         if (videoSourceWebm) videoSourceWebm.src = "/static/background-dark.webm";
         if (backgroundVideo) backgroundVideo.load();
       }
-      
+
       if (timestamp) {
         timestamp.textContent = "📅 " + new Date().toLocaleString();
       }
-      
+
       // Setup scenario input listener for memory suggestions
       const scenarioInput = document.getElementById('scenario');
       if (scenarioInput) {
         scenarioInput.addEventListener("input", handleScenarioInput);
       }
-      
+
       // Setup video event listeners
       if (backgroundVideo) {
-        backgroundVideo.addEventListener('loadeddata', function() {
+        backgroundVideo.addEventListener('loadeddata', function () {
           if (backgroundVideo.paused) {
             backgroundVideo.play().catch(e => console.log('Video autoplay prevented:', e));
           }
         });
-        
-        backgroundVideo.addEventListener('error', function() {
+
+        backgroundVideo.addEventListener('error', function () {
           console.warn('Video failed to load, switching to fallback');
           const videoBackground = document.querySelector('.video-background');
           if (videoBackground) {
@@ -1253,7 +1259,7 @@
           }
         });
       }
-      
+
       // Load initial data
       loadRankings();
       loadTopApologies();
@@ -1263,16 +1269,16 @@
     function handleScenarioInput() {
       const scenarioInput = document.getElementById('scenario');
       const memorySuggest = document.getElementById('memorySuggest');
-      
+
       if (!scenarioInput || !memorySuggest) return;
-      
+
       const q = scenarioInput.value.trim();
-      
+
       if (!q) {
         memorySuggest.style.display = "none";
         return;
       }
-      
+
       fetch("/api/memory?q=" + encodeURIComponent(q))
         .then((r) => r.json())
         .then((d) => {
@@ -1280,12 +1286,12 @@
             memorySuggest.style.display = "none";
             return;
           }
-          
+
           memorySuggest.innerHTML = d.matches
             .map((txt) => `<li style="cursor:pointer;padding:2px 0">${txt}</li>`)
             .join("");
           memorySuggest.style.display = "block";
-          
+
           // Add click handlers to suggestions
           [...memorySuggest.children].forEach((li) => {
             li.onclick = () => {
@@ -1314,9 +1320,10 @@
     window.onload = () => {
       loadRankings();
       loadTopApologies();
-      document.getElementById("screenshotTheme").value = 
+      document.getElementById("screenshotTheme").value =
         document.body.classList.contains("dark") ? "dark" : "light";
     };
   </script>
 </body>
+
 </html>
