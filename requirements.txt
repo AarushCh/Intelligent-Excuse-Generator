@@ -9,3 +9,4 @@ pygame
 email-validator
 pydantic
 aiofiles
+python-dotenv
