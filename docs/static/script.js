@@ -69,7 +69,6 @@ async function getExcuse() {
         document.getElementById('excuseOut').innerHTML = `<strong>${new Date().toLocaleString()}</strong><br>${data.english}`;
         const trans = document.getElementById('translatedOut');
         if (trans) trans.innerText = els.language !== "en" ? "Translation: " + data.translated : "";
-        playVoice('excuseOut');
     } else {
         document.getElementById('excuseOut').innerHTML = "❌ Connection failed. Backend offline?";
     }
