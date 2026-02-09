@@ -95,7 +95,6 @@ body.dark .video-overlay {
   opacity: 0.7 !important;
   pointer-events: none;
   position: relative;
-  transition: opacity 0.3s;
 }
 
 .screenshot-loading::after {
@@ -109,6 +108,16 @@ body.dark .video-overlay {
   border-radius: 50%;
   animation: buttonSpinner 1s linear infinite;
   vertical-align: middle;
+}
+
+@keyframes buttonSpinner {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 /* Fallback when video fails */
@@ -688,7 +697,7 @@ body.dark .small-round-btn:hover {
   padding: 15px;
   border-radius: 10px;
   text-align: center;
-  animation: fadeIn 0.3s;
+  transition: all 0.3s ease;
   font-size: 1em;
 }
 
@@ -1120,5 +1129,62 @@ body.dark .result-block {
     background: white !important;
     box-shadow: none !important;
     backdrop-filter: none !important;
+  }
+}
+
+/* =========================================
+   NEW JAVASCRIPT ANIMATION UTILITIES
+   ========================================= */
+
+/* Button Bounce Effect */
+.bouncing {
+  animation: bounceEffect 0.25s ease-out;
+}
+
+@keyframes bounceEffect {
+  0% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(0.95);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Toggle Box Animations */
+.fadeSlideIn {
+  display: block !important;
+  animation: fadeSlideIn 0.4s ease-out forwards;
+}
+
+.fadeOut {
+  animation: fadeOut 0.3s ease-in forwards;
+}
+
+@keyframes fadeSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateY(-10px);
   }
 }
