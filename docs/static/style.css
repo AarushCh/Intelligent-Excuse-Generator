@@ -7,7 +7,7 @@
 
 @font-face {
   font-family: 'Coolvetica';
-  src: url('/static/fonts/Coolvetica-Rg-Cond.otf') format('opentype');
+  src: url('Coolvetica-Rg-Cond.otf') format('opentype');
   font-weight: normal;
   font-style: normal;
   font-display: swap;
