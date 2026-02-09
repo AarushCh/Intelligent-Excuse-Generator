@@ -2,7 +2,7 @@
 
 ## 🔗 Live Website
 
-➡️ [https://intelligent-excuse-generator-xqx0.onrender.com/](https://intelligent-excuse-generator-xqx0.onrender.com/) 
+➡️ [https://aarushch.github.io/Intelligent-Excuse-Generator/](https://aarushch.github.io/Intelligent-Excuse-Generator/) 
 
 An AI-powered excuse and apology generator using FastAPI + OpenAI GPT-4o, with 
 screenshot proof, dark mode, favorites, rankings, and emergency alert system via email.
