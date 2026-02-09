@@ -1,8 +1,7 @@
 // --- CONFIGURATION ---
 const API_BASE = "https://intelligent-excuse-generator-xqx0.onrender.com";
 
-// --- 1. CENTRALIZED API CALLER (The Magic Fix) ---
-// This automatically adds the URL to every single request
+// --- 1. CENTRALIZED API CALLER (The Fix for "Failed to generate") ---
 async function callApi(endpoint, body = null) {
     const options = { headers: { "Content-Type": "application/json" } };
     if (body) {
@@ -11,6 +10,7 @@ async function callApi(endpoint, body = null) {
     }
 
     try {
+        // This automatically connects to Render for every request
         const res = await fetch(`${API_BASE}${endpoint}`, options);
         return await res.json();
     } catch (err) {
@@ -19,9 +19,9 @@ async function callApi(endpoint, body = null) {
     }
 }
 
-// --- 2. INITIALIZATION (Styles & Event Listeners) ---
+// --- 2. INITIALIZATION ---
 document.addEventListener('DOMContentLoaded', () => {
-    // Inject Loading Styles dynamically
+    // Inject required styles for JS animations
     const style = document.createElement('style');
     style.textContent = `
     .screenshot-loading { opacity: 0.7; pointer-events: none; }
@@ -33,24 +33,25 @@ document.addEventListener('DOMContentLoaded', () => {
   `;
     document.head.appendChild(style);
 
-    // Initialize Theme
+    // Load Theme
     const isDark = localStorage.getItem("darkMode") === "enabled";
     document.getElementById("themeToggle").checked = isDark;
     if (isDark) toggleDarkModeSwitch();
 
-    // Set Timestamp
-    document.getElementById("timestamp").textContent = "📅 " + new Date().toLocaleString();
+    // Set Date
+    const ts = document.getElementById("timestamp");
+    if (ts) ts.textContent = "📅 " + new Date().toLocaleString();
 
-    // Load Initial Data
+    // Load Lists
     loadRankings();
     loadTopApologies();
 
-    // Setup Memory Suggestions
+    // Setup Input Listeners
     const input = document.getElementById('scenario');
     if (input) input.addEventListener("input", handleScenarioInput);
 });
 
-// --- 3. CORE FEATURES ---
+// --- 3. GENERATORS ---
 
 async function getExcuse() {
     const els = {
@@ -66,10 +67,11 @@ async function getExcuse() {
 
     if (data) {
         document.getElementById('excuseOut').innerHTML = `<strong>${new Date().toLocaleString()}</strong><br>${data.english}`;
-        document.getElementById('translatedOut').innerText = els.language !== "en" ? "Translation: " + data.translated : "";
+        const trans = document.getElementById('translatedOut');
+        if (trans) trans.innerText = els.language !== "en" ? "Translation: " + data.translated : "";
         playVoice('excuseOut');
     } else {
-        document.getElementById('excuseOut').innerHTML = "❌ Connection failed. Is the backend running?";
+        document.getElementById('excuseOut').innerHTML = "❌ Connection failed. Backend offline?";
     }
 }
 
@@ -90,6 +92,8 @@ async function generateApology() {
     }
 }
 
+// --- 4. TONE & COMPLETION ---
+
 async function applyTone() {
     const tone = document.getElementById("adjustTone").value;
     const sentence = document.getElementById("apologyOut").innerText;
@@ -105,7 +109,6 @@ async function applyTone() {
         document.getElementById("apologyOut").innerHTML = `<strong>${new Date().toLocaleString()}</strong><br>${data.adjusted}`;
         saveApologyToAllSystems(data.adjusted);
     }
-
     btn.innerText = original;
     btn.disabled = false;
 }
@@ -129,7 +132,7 @@ async function showGuiltScore() {
     if (data) alert("🧠 Guilt Level:\n\n" + (data.feedback || "Error analyzing text"));
 }
 
-// --- 4. SCREENSHOTS ---
+// --- 5. SCREENSHOTS (Consolidated Logic) ---
 
 async function generateScreenshot(type) {
     const btn = event.target;
@@ -138,7 +141,6 @@ async function generateScreenshot(type) {
     btn.classList.add("screenshot-loading");
     btn.disabled = true;
 
-    // Uses the Helper to call correct endpoint: /api/screenshot-excuse OR /api/screenshot-apology
     const data = await callApi(`/api/screenshot-${type}`, { theme });
 
     if (data?.url) {
@@ -150,21 +152,25 @@ async function generateScreenshot(type) {
         dlBtn.style.display = "inline-block";
 
         dlBtn.onclick = async () => {
-            const blob = await (await fetch(data.url)).blob();
-            const a = document.createElement("a");
-            a.href = URL.createObjectURL(blob);
-            a.download = `${type}_proof.png`;
-            a.click();
+            try {
+                const blob = await (await fetch(data.url)).blob();
+                const a = document.createElement("a");
+                a.href = URL.createObjectURL(blob);
+                a.download = `${type}_proof.png`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            } catch (e) { alert("Download failed, try right-clicking image."); }
         };
+        window.screenshotUrl = data.url;
     } else {
-        alert("Screenshot generation failed.");
+        alert("Screenshot failed.");
     }
-
     btn.classList.remove("screenshot-loading");
     btn.disabled = false;
 }
 
-// --- 5. DATA & HISTORY LISTS ---
+// --- 6. LIST LOADERS (Consolidated Logic) ---
 
 async function loadList(endpoint, elementId, isHistory = false) {
     const data = await callApi(endpoint);
@@ -172,7 +178,7 @@ async function loadList(endpoint, elementId, isHistory = false) {
     if (!data || !list) return;
 
     const array = data.history || data.favorites || data;
-    if (!array.length) {
+    if (!array || !array.length) {
         list.innerHTML = "<li style='text-align:center;color:#666'>No items.</li>";
         return;
     }
@@ -187,7 +193,7 @@ async function loadList(endpoint, elementId, isHistory = false) {
     }).join("");
 }
 
-// Wrapper functions for lists
+// Short wrappers for specific lists
 const loadHistory = () => loadList('/api/history', 'historyList', true);
 const loadFavorites = () => loadList('/api/favorites', 'favoritesList');
 const loadRankings = () => loadList('/api/rankings', 'rankingsList');
@@ -195,24 +201,19 @@ const loadApologyHistory = () => loadList('/api/apology-history', 'apolHistoryLi
 const loadApologyFavorites = () => loadList('/api/apology-favorites', 'apolFavList');
 const loadTopApologies = () => loadList('/api/top-apologies', 'apolTopList');
 
-// Calendar specific loader
+// Calendars need special formatting
 const loadCalendar = () => callApi('/api/calendar').then(d => buildCalendar(document.getElementById('calendarList'), d));
 const loadApologyCalendar = () => callApi('/api/apology-calendar').then(d => buildCalendar(document.getElementById('apolCalList'), d));
 
 function buildCalendar(target, data) {
     if (!target) return;
-    if (!data || !data.length) {
-        target.innerHTML = "<p style='text-align:center;color:#666'>No records.</p>";
-        return;
-    }
+    if (!data || !data.length) { target.innerHTML = "<p style='text-align:center'>No records.</p>"; return; }
     const grouped = {};
     data.forEach(i => (grouped[i.date] ??= []).push(i));
-    target.innerHTML = Object.keys(grouped).map(d =>
-        `<h4>${d}</h4><ul>${grouped[d].map(i => `<li><strong>${i.time}</strong> – ${i.text}</li>`).join("")}</ul>`
-    ).join("");
+    target.innerHTML = Object.keys(grouped).map(d => `<h4>${d}</h4><ul>${grouped[d].map(i => `<li><strong>${i.time}</strong> – ${i.text}</li>`).join("")}</ul>`).join("");
 }
 
-// --- 6. UTILITIES (Save, Audio, Theme, Etc) ---
+// --- 7. UTILITIES (Save, Audio, UI) ---
 
 function saveApologyToAllSystems(text) {
     callApi('/api/save-apology-history', { text, time: new Date().toLocaleString() });
@@ -224,45 +225,41 @@ function saveFavorite(type = 'excuse') {
     callApi(endpoint, {}).then(d => d && alert(d.message));
 }
 
-function clearData(endpoint, reloadFn) {
-    if (confirm("Are you sure?")) callApi(endpoint, {}).then(reloadFn);
-}
-
-// Explicit wrappers for HTML onclicks
-function clearTopExcuses() { clearData('/api/clear-rankings', loadRankings); }
-function clearTopApologies() { clearData('/api/clear-apology-rankings', loadTopApologies); }
+// Explicit wrappers for HTML buttons
 function saveApologyFavorite() { saveFavorite('apology'); }
+function clearTopExcuses() { if (confirm("Erase?")) callApi('/api/clear-rankings', {}).then(loadRankings); }
+function clearTopApologies() { if (confirm("Erase?")) callApi('/api/clear-apology-rankings', {}).then(loadTopApologies); }
 
 function playVoice(targetId) {
     const text = document.getElementById(targetId)?.innerText;
-    if (text) {
-        const u = new SpeechSynthesisUtterance(text);
-        speechSynthesis.speak(u);
-    }
+    if (text) speechSynthesis.speak(new SpeechSynthesisUtterance(text));
 }
 function playApologyVoice() { playVoice('apologyOut'); }
+function playClickSound() {
+    const s = document.getElementById('clickSound');
+    if (s) s.play().catch(() => { });
+}
 
 function toggleBox(id, btn) {
     const target = document.getElementById(id);
     const isVisible = target.style.display === "block";
+    playClickSound();
 
-    // Close all others
     document.querySelectorAll(".toggle-box").forEach(b => b.style.display = 'none');
 
     if (!isVisible) {
         target.style.display = "block";
         target.classList.add('fadeSlideIn');
 
-        // Refresh data when opening
+        // Refresh Data
         if (id.includes('history')) id.includes('apol') ? loadApologyHistory() : loadHistory();
-        else if (id.includes('favorites') || id.includes('Fav')) id.includes('apol') ? loadApologyFavorites() : loadFavorites();
+        else if (id.includes('fav')) id.includes('apol') ? loadApologyFavorites() : loadFavorites();
         else if (id.includes('rank') || id.includes('Top')) id.includes('apol') ? loadTopApologies() : loadRankings();
-        else if (id.includes('calendar') || id.includes('Cal')) id.includes('apol') ? loadApologyCalendar() : loadCalendar();
+        else if (id.includes('cal')) id.includes('apol') ? loadApologyCalendar() : loadCalendar();
     }
 
-    // Button Animation
     btn.classList.remove('bouncing');
-    void btn.offsetWidth; // Trigger reflow
+    void btn.offsetWidth;
     btn.classList.add('bouncing');
 }
 
@@ -270,15 +267,16 @@ function toggleDarkModeSwitch() {
     const isDark = document.getElementById("themeToggle").checked;
     document.body.classList.toggle("dark", isDark);
     localStorage.setItem("darkMode", isDark ? "enabled" : "disabled");
-    document.getElementById("themeLabel").textContent = isDark ? "🌙 Dark Mode" : "🌞 Light Mode";
 
-    // Update Video (Remove leading slash for GitHub Pages)
+    const lbl = document.getElementById("themeLabel");
+    if (lbl) lbl.textContent = isDark ? "🌙 Dark Mode" : "🌞 Light Mode";
+
     const vid = document.getElementById("video-source");
     const vidWebm = document.getElementById("video-source-webm");
-    vid.src = `static/background-${isDark ? 'dark' : 'light'}.mp4`;
-    vidWebm.src = `static/background-${isDark ? 'dark' : 'light'}.webm`;
-    document.getElementById("background-video").load();
+    if (vid) vid.src = `static/background-${isDark ? 'dark' : 'light'}.mp4`;
+    if (vidWebm) vidWebm.src = `static/background-${isDark ? 'dark' : 'light'}.webm`;
 
+    document.getElementById("background-video").load();
     document.getElementById("screenshotTheme").value = isDark ? "dark" : "light";
 }
 
