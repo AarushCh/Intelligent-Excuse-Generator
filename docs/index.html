@@ -210,6 +210,9 @@
   <audio id="clickSound" src="/static/click.mp3" preload="auto"></audio>
 
   <script>
+
+    const API_BASE = "https://intelligent-excuse-generator-xqx0.onrender.com";
+
     (function initializeStyles() {
       const loadingStyle = document.createElement('style');
       loadingStyle.textContent = `
@@ -1201,9 +1204,9 @@
       themeLabel.textContent = isDark ? "🌙 Dark Mode" : "🌞 Light Mode";
 
       // Fix relative paths here:
-      videoSource.src = isDark ? "./static/background-dark.mp4" : "./static/background-light.mp4";
+      videoSource.src = isDark ? "static/background-dark.mp4" : "static/background-light.mp4";
       if (videoSourceWebm)
-        videoSourceWebm.src = isDark ? "./static/background-dark.webm" : "./static/background-light.webm";
+        videoSourceWebm.src = isDark ? "static/background-dark.webm" : "static/background-light.webm";
 
       backgroundVideo.load();
       document.getElementById("screenshotTheme").value = isDark ? "dark" : "light";

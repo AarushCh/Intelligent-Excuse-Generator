@@ -5,12 +5,9 @@ import shelve
 import requests
 import re
 from openai import OpenAI
-from fastapi import Request
-from fastapi import FastAPI, Body, Depends, HTTPException, Response
+from fastapi import FastAPI, Body, Depends, HTTPException, Response, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
-from fastapi.responses import HTMLResponse, FileResponse
+from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from email.message import EmailMessage
 from datetime import datetime
@@ -20,7 +17,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.date import DateTrigger
 from dotenv import load_dotenv
 
-# Note: You should ideally update utils/openai_handler.py to use the new OpenRouter client as well
+# Note: Ensure utils/openai_handler.py is updated to use OpenRouter as discussed previously
 from utils.openai_handler import (
     generate_excuse,
     generate_apology,
@@ -30,7 +27,7 @@ from utils.openai_handler import (
 load_dotenv()
 
 # Updated for OpenRouter
-OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "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")
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 HCTI_API_USER    = os.getenv("HCTI_API_USER")
 HCTI_API_KEY     = os.getenv("HCTI_API_KEY")
 EMAIL_USERNAME   = os.getenv("EMAIL_USERNAME")
@@ -38,15 +35,10 @@ EMAIL_PASSWORD   = os.getenv("EMAIL_PASSWORD")
 EMAIL_RECIPIENTS = os.getenv("EMAIL_RECIPIENTS")
 
 required = ["OPENROUTER_API_KEY", "HCTI_API_USER", "HCTI_API_KEY"]
-# Check using the variable directly since we support hardcoding above if .env is missing
 if not OPENROUTER_API_KEY:
     print("⚠️ Missing OPENROUTER_API_KEY")
 
-print(f"OpenRouter Key: {'✅' if OPENROUTER_API_KEY else '❌'}")
-print(f"HCTI User: {'✅' if HCTI_API_USER else '❌'}")
-print(f"HCTI Key : {'✅' if HCTI_API_KEY else '❌'}")
-print(f"Email    : {'✅' if EMAIL_USERNAME and EMAIL_PASSWORD else '❌'}")
-
+# ============ File Setup =============
 EXCUSE_SCORE_FILE = "smart_scores.json"
 EXCUSE_CAL_FILE = "excuse_calendar.json"
 APOLOGY_SCORE_FILE = "apology_scores.json"
@@ -72,7 +64,6 @@ latest_excuse = None
 latest_apology = None
 
 # ========== OpenRouter Client =========
-# Using the specific configuration for NVIDIA Nemotron
 client = OpenAI(
   base_url="https://openrouter.ai/api/v1",
   api_key=OPENROUTER_API_KEY,
@@ -80,15 +71,22 @@ client = OpenAI(
 
 MODEL_NAME = "nvidia/nemotron-nano-12b-v2-vl:free"
 
-# ============ FastAPI & CORS + static/templates ============
+# ============ FastAPI & CORS ============
 app = FastAPI()
 scheduler = BackgroundScheduler()
 scheduler.start()
-app.mount("/static", StaticFiles(directory="docs/static"), name="static")
-templates = Jinja2Templates(directory="docs")
+
+# --- CRITICAL: CORS FOR GITHUB PAGES ---
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"],
+    allow_origins=[
+        "http://localhost:8000",
+        "http://127.0.0.1:8000",
+        "https://aarushch.github.io"  # YOUR GITHUB PAGES URL
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # ============ Pydantic Models ============
@@ -131,7 +129,6 @@ class AutoCompleteInput(BaseModel):
     prompt: str
 
 # ============ HCTI Screenshot Utility ============
-# (Kept identical to previous version)
 def generate_screenshot(type="excuse"):
     content = latest_excuse if type == "excuse" else latest_apology or "No data"
     html = f"""
@@ -150,8 +147,9 @@ def generate_screenshot(type="excuse"):
         print("❌ Screenshot error:", e)
         return {"error": str(e)}
 
-def generate_screenshot_html(main_text, label, theme):
-    logo_url = "https://yourdomain.com/static/logo.png"
+def render_screenshot_html(main_text, label, theme):
+    logo_url = "https://aarushch.github.io/Intelligent-Excuse-Generator/static/images/logo.png"
+    
     bg_gradient = {
         "light": "linear-gradient(135deg, #fefcea 0%, #f1da36 100%)",
         "dark": "linear-gradient(135deg, #1b263b 0%, #415a77 100%)"
@@ -182,14 +180,17 @@ def generate_screenshot_html(main_text, label, theme):
 
 # ============ Main Routes ============
 
-@app.get("/", response_class=HTMLResponse)
-def serve_ui(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+@app.get("/")
+def api_root():
+    return {
+        "status": "online", 
+        "message": "Backend is running.", 
+        "frontend_url": "https://aarushch.github.io/Intelligent-Excuse-Generator/"
+    }
 
 @app.post("/api/excuse")
 def generate_excuse_from_openai(payload: ExcuseInput):
     global latest_text, latest_label, latest_excuse
-    # NOTE: ensure generate_excuse in utils/openai_handler.py is updated to use OpenRouter!
     english, translated = generate_excuse(
         payload.scenario, payload.urgency, payload.language, payload.style
     )
@@ -231,7 +232,6 @@ def generate_excuse_from_openai(payload: ExcuseInput):
 @app.post("/api/apology")
 def create_apology(payload: ApologyInput):
     global latest_text, latest_label, latest_apology
-    # NOTE: ensure generate_apology in utils/openai_handler.py is updated to use OpenRouter!
     english, translated = generate_apology(payload.context, payload.tone, payload.type, payload.style, payload.language)
     latest_text = english
     latest_label = "Apology"
@@ -277,7 +277,11 @@ def api_excuse_calendar():
 
 @app.get("/api/screenshot", response_class=FileResponse)
 def download_screenshot():
+    # Note: On Render, this file is ephemeral (will disappear on redeploy)
+    # But it is fine for temporary downloads immediately after generation
     file_path = "static/screenshot.png"
+    if not os.path.exists("static"):
+        os.makedirs("static")
     return FileResponse(path=file_path, media_type="image/png", filename="excuse.png", headers={"Access-Control-Allow-Origin": "*"})
 
 @app.get("/api/favorites")
@@ -303,6 +307,7 @@ def trigger_emergency_internal(recipient_override: dict | None = None):
     excuse  = open("latest_excuse.txt", "r", encoding="utf-8").read().strip() if os.path.exists("latest_excuse.txt") else "No excuse."
     apology = open("latest_apology.txt", "r", encoding="utf-8").read().strip() if os.path.exists("latest_apology.txt") else "No apology."
     EMAIL_SENDER     = os.getenv("EMAIL_USERNAME")
+    EMAIL_PASSWORD   = os.getenv("EMAIL_PASSWORD")
     default_list = [r.strip() for r in os.getenv("EMAIL_RECIPIENTS", "").split(",") if r.strip()]
     input_list = []
     if recipient_override and recipient_override.get("email"):
@@ -319,6 +324,8 @@ def trigger_emergency_internal(recipient_override: dict | None = None):
         msg["From"] = EMAIL_SENDER
         msg["To"] = ", ".join(recipients)
         msg.set_content(f"📝 Excuse:\n{excuse}\n\n🙏 Apology:\n{apology}")
+        # Note: Local file attachment might fail if screenshot wasn't generated recently on this specific server instance
+        # We skip attachment logic if file missing to prevent crash
         shot = "static/screenshot.png"
         if os.path.exists(shot):
             with open(shot, "rb") as fh:
@@ -332,14 +339,17 @@ def trigger_emergency_internal(recipient_override: dict | None = None):
             print("❌ Email error:", e)
             
     def play_siren():
+        # Audio won't play on a server, but we keep the code safe
         try:
             import pygame
             pygame.mixer.init()
-            pygame.mixer.music.load("static/alert.mp3")
-            pygame.mixer.music.set_volume(1.0)
-            pygame.mixer.music.play()
+            # Path must be relative or absolute. static/alert.mp3 needs to exist in repo
+            if os.path.exists("static/alert.mp3"):
+                pygame.mixer.music.load("static/alert.mp3")
+                pygame.mixer.music.set_volume(1.0)
+                pygame.mixer.music.play()
         except Exception as e:
-            print("❌ Sound error:", e)
+            print("❌ Sound error (expected on server):", e)
             
     def log_event():
         entry = {"timestamp": str(datetime.now()), "excuse": excuse, "apology": apology, "recipients": recipients}
@@ -462,48 +472,11 @@ def api_clear_excuse_rankings():
     json.dump({}, open(EXCUSE_SCORE_FILE, "w", encoding="utf-8"))
     return {"message": "Smart rankings cleared."}
 
-@app.get("/proof", response_class=HTMLResponse)
-def show_proof(request: Request):
-    return templates.TemplateResponse("proof.html", {"request": request, "message": latest_text, "label": latest_label})
-
-@app.middleware("http")
-async def log_requests(request: Request, call_next):
-    print(f"👉 {request.method} {request.url.path}")
-    return await call_next(request)
-
-def render_screenshot_html(text, mode):
-    timestamp = datetime.now().strftime("%B %d, %Y %I:%M %p")
-    color = "#60a5fa" if mode == "Apology" else "#f87171"
-    return f"""
-    <html>
-      <head>
-        <meta charset="UTF-8" />
-        <style>
-          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@600;700&display=swap');
-          body {{ margin: 0; padding: 0; background: linear-gradient(135deg, #cad9ed 0%, #a6c4ed 100%); height: 100vh; display: flex; justify-content: center; align-items: center; font-family: 'Inter', sans-serif; }}
-          .card {{ width: 1080px; height: 720px; padding: 64px 56px; border-radius: 28px; background: linear-gradient(135deg, #1b263b 0%, #415a77 100%); box-shadow: 0 14px 48px rgba(0, 0, 0, 0.25); color: #ffffff; display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative; text-align: center; }}
-          .header {{ font-size: 30px; font-weight: 700; color: {color}; margin-bottom: 8px; }}
-          .subheader {{ font-size: 30px; font-weight: 600; color: #ffffff; opacity: 0.9; margin-bottom: 36px; }}
-          .text {{ font-size: 50px; font-weight: 600; line-height: 1.8; color: #f8fafc; white-space: pre-line; max-width: 90%; }}
-          .timestamp {{ position: absolute; bottom: 26px; right: 32px; font-size: 13px; color: #cbd5e1; opacity: 0.6; }}
-        </style>
-      </head>
-      <body>
-        <div class="card">
-          <div class="text">{text}</div>
-          <div class="subheader">– Intelligent Excuse Generator –</div>
-          <div class="header">{mode}</div>
-          <div class="timestamp">Generated on {timestamp}</div>
-        </div>
-      </body>
-    </html>
-    """
-
 @app.post("/api/screenshot-excuse")
 def screenshot_excuse():
     try:
         if not latest_excuse: return {"error": "No excuse available to screenshot."}
-        html = render_screenshot_html("Excuse", latest_excuse)
+        html = render_screenshot_html(latest_excuse, "Excuse", "light") # Defaulting to light theme
         res = requests.post("https://hcti.io/v1/image", data={"html": html}, auth=(HCTI_API_USER, HCTI_API_KEY))
         link = res.json().get("url", "")
         return {"url": link}
@@ -515,7 +488,7 @@ def screenshot_excuse():
 def screenshot_apology():
     try:
         if not latest_apology: return {"error": "No apology available to screenshot."}
-        html = render_screenshot_html("Apology", latest_apology)
+        html = render_screenshot_html(latest_apology, "Apology", "light")
         res = requests.post("https://hcti.io/v1/image", data={"html": html}, auth=(HCTI_API_USER, HCTI_API_KEY))
         link = res.json().get("url", "")
         return {"url": link}
@@ -679,10 +652,10 @@ def verify_admin(credentials: HTTPBasicCredentials = Depends(security)):
         raise HTTPException(status_code=401, detail="Unauthorized")
     return credentials.username
 
-@app.get("/admin", response_class=HTMLResponse)
+@app.get("/admin", response_class=JSONResponse)
 def admin_panel(request: Request):
     logs = json.load(open("emergency_log.json", encoding="utf-8")) if os.path.exists("emergency_log.json") else []
-    return templates.TemplateResponse("admin.html", {"request": request, "logs": logs})
+    return {"logs": logs}
 
 @app.post("/api/update-latest-apology")
 def update_latest_apology(payload: dict = Body(...)):
@@ -702,6 +675,11 @@ def update_latest_apology(payload: dict = Body(...)):
             with open(APOLOGY_CAL_FILE, "w", encoding="utf-8") as f:
                 json.dump([cal_entry], f, indent=2)
     return {"message": "Latest apology updated successfully"}
+
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    print(f"👉 {request.method} {request.url.path}")
+    return await call_next(request)
 
 """
 MIT License
