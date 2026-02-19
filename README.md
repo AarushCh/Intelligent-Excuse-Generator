@@ -186,36 +186,34 @@ Used across all AI features listed above
 | Apology Auto-Completion | `/api/complete-apology` | GPT-4o | Autocomplete starting sentence |
 -----------------------------------------------------------------------------------------------
 
-||
-
-##📸 Screenshot Proof
+## 📸 Screenshot Proof
 
 Beautiful HTML-based card layout
 Linear-gradient backgrounds with Inter font
 Includes timestamp + watermark
 Fully downloadable
 
-##📅 Auto-Scheduling
+## 📅 Auto-Scheduling
 
 Schedule excuse/apology emails
 Uses APScheduler
 Emails sent automatically at correct time
 Logged in excuse_calendar.json
 
-##🛑 Emergency System
+## 🛑 Emergency System
 
 Email alerts with optional screenshot
 Offline audio alert using pygame
 Logs to emergency_log.json
 Admin route to view everything
 
-##✅ Admin Panel
+## ✅ Admin Panel
 
 Route: /admin
 Auth protected (optional)
 Table view of all emergency logs
 
-##⚙️ Tech Stack
+## ⚙️ Tech Stack
 
 Backend: FastAPI
 Frontend: HTML + Vanilla JS
