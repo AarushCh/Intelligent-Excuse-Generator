@@ -186,6 +186,8 @@ Used across all AI features listed above
 | Apology Auto-Completion | `/api/complete-apology` | GPT-4o | Autocomplete starting sentence |
 -----------------------------------------------------------------------------------------------
 
+||
+
 ##📸 Screenshot Proof
 
 Beautiful HTML-based card layout
