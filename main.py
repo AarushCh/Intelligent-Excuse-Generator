@@ -372,28 +372,41 @@ def trigger_emergency_internal(recipient_override: dict | None = None):
                 msg.add_attachment(fh.read(), maintype="image", subtype="png", filename="proof.png")
         try:
             import smtplib
-            with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
-                smtp.login(EMAIL_SENDER, EMAIL_PASSWORD)
-                smtp.send_message(msg)
+            try:
+                with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=5) as smtp:
+                    smtp.login(EMAIL_SENDER, EMAIL_PASSWORD)
+                    smtp.send_message(msg)
+            except OSError:
+                with smtplib.SMTP("smtp.gmail.com", 587, timeout=5) as smtp:
+                    smtp.starttls()
+                    smtp.login(EMAIL_SENDER, EMAIL_PASSWORD)
+                    smtp.send_message(msg)
         except Exception as e:
-            print("❌ Email error:", e)
+            err = str(e)
+            if "Network is unreachable" in err or "101" in err:
+                print("⚠️ Email skipped: Network blocks standard SMTP outgoing ports on this host.")
+            else:
+                print("❌ Email error:", e)
             
     def play_siren():
-        # Audio won't play on a server, but we keep the code safe
+        import platform
+        if platform.system() == "Linux" or os.environ.get('DISABLE_AUDIO'):
+            print("⚠️ Audio disabled on Linux server to prevent libgthread warnings.")
+            return
+
         try:
             import pygame
-            # Suppress prompt output by capturing it or avoiding init completely if in headless (HF Spaces typically lacks audio hardware)
-            if not os.environ.get('DISABLE_AUDIO'):
-                pygame.mixer.init()
-                # Path must be relative or absolute. static/alert.mp3 needs to exist in repo
-                if os.path.exists("static/alert.mp3"):
-                    pygame.mixer.music.load("static/alert.mp3")
-                    pygame.mixer.music.set_volume(1.0)
-                    pygame.mixer.music.play()
+            # Suppress prompt output by capturing it
+            pygame.mixer.init()
+            # Path must be relative or absolute. static/alert.mp3 needs to exist in repo
+            if os.path.exists("static/alert.mp3"):
+                pygame.mixer.music.load("static/alert.mp3")
+                pygame.mixer.music.set_volume(1.0)
+                pygame.mixer.music.play()
         except ImportError:
             print("⚠️ pygame not installed. Siren disabled.")
         except Exception as e:
-            print("❌ Sound error (expected on server):", e)
+            print("❌ Sound error:", e)
             
     def log_event():
         entry = {"timestamp": str(datetime.now()), "excuse": excuse, "apology": apology, "recipients": recipients}
