@@ -1,5 +1,7 @@
 // --- CONFIGURATION ---
-const API_BASE = "https://aarushch-intelligent-excuse-generator.hf.space";
+const API_BASE = (window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost")
+    ? "http://127.0.0.1:8000"
+    : "https://aarushch-intelligent-excuse-generator.hf.space";
 
 // --- 1. TOAST NOTIFICATIONS (Replaces native alerts) ---
 function showToast(message, type = 'info') {
@@ -284,7 +286,11 @@ function clearTopApologies() { if (confirm("Erase?")) callApi('/api/clear-apolog
 
 function playVoice(targetId) {
     const text = document.getElementById(targetId)?.innerText;
-    if (text) speechSynthesis.speak(new SpeechSynthesisUtterance(text));
+    if (text) {
+        let utterance = new SpeechSynthesisUtterance(text);
+        utterance.volume = 0.3; // Reduce volume to 30%
+        speechSynthesis.speak(utterance);
+    }
 }
 function playApologyVoice() { playVoice('apologyOut'); }
 function playClickSound() {
