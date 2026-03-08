@@ -53,18 +53,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const style = document.createElement('style');
     style.textContent = `
     .screenshot-loading { opacity: 0.7; pointer-events: none; }
-    .bouncing { animation: bounce 0.25s; }
-    @keyframes bounce { 0% {transform:scale(1)} 50% {transform:scale(0.95)} 100% {transform:scale(1)} }
-    .toggle-box { transition: all 0.3s ease; }
-    .fadeSlideIn { animation: fadeIn 0.4s ease-out; }
-    @keyframes fadeIn { from{opacity:0;transform:translateY(-10px)} to{opacity:1;transform:translateY(0)} }
-    
     /* Toast Styles */
-    #toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
-    .toast { background: rgba(0, 0, 0, 0.85); color: #fff; padding: 12px 20px; border-radius: 8px; font-weight: 500; font-size: 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); opacity: 0; transform: translateY(20px); transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-    .toast.show { opacity: 1; transform: translateY(0); }
-    .toast-error { background: rgba(220, 53, 69, 0.9); }
-    .toast-success { background: rgba(40, 167, 69, 0.9); }
+    #toast-container { position: fixed; bottom: 30px; right: 30px; z-index: 9999; display: flex; flex-direction: column; gap: 12px; }
   `;
     document.head.appendChild(style);
 
@@ -77,14 +67,25 @@ document.addEventListener('DOMContentLoaded', () => {
     const ts = document.getElementById("timestamp");
     if (ts) ts.textContent = "📅 " + new Date().toLocaleString();
 
-    // Load Lists
-    loadRankings();
-    loadTopApologies();
-
     // Setup Input Listeners
     const input = document.getElementById('scenario');
     if (input) input.addEventListener("input", handleScenarioInput);
 });
+
+// --- SPA NAV ROUTING ---
+function switchPage(pageId, btnElement) {
+    // Hide all pages
+    document.querySelectorAll('.page-view').forEach(p => p.classList.remove('active'));
+    // Deactivate all nav links
+    document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+
+    // Activate target
+    document.getElementById(pageId).classList.add('active');
+    btnElement.classList.add('active');
+
+    // Play a tiny audio cue if desired
+    playClickSound();
+}
 
 // --- 4. GENERATORS ---
 
@@ -293,14 +294,13 @@ function playClickSound() {
 
 function toggleBox(id, btn) {
     const target = document.getElementById(id);
-    const isVisible = target.style.display === "block";
+    const isVisible = !target.classList.contains('hidden');
     playClickSound();
 
-    document.querySelectorAll(".toggle-box").forEach(b => b.style.display = 'none');
+    document.querySelectorAll(".toggle-box").forEach(b => b.classList.add('hidden'));
 
     if (!isVisible) {
-        target.style.display = "block";
-        target.classList.add('fadeSlideIn');
+        target.classList.remove('hidden');
 
         // Refresh Data
         if (id.includes('history')) id.includes('apol') ? loadApologyHistory() : loadHistory();
@@ -308,10 +308,6 @@ function toggleBox(id, btn) {
         else if (id.includes('rank') || id.includes('Top')) id.includes('apol') ? loadTopApologies() : loadRankings();
         else if (id.includes('cal')) id.includes('apol') ? loadApologyCalendar() : loadCalendar();
     }
-
-    btn.classList.remove('bouncing');
-    void btn.offsetWidth;
-    btn.classList.add('bouncing');
 }
 
 function toggleDarkModeSwitch() {

@@ -8,7 +8,7 @@ load_dotenv()
 # Configure OpenRouter Client
 client = OpenAI(
     base_url="https://openrouter.ai/api/v1",
-    api_key=os.getenv("OPENROUTER_API_KEY"),
+    api_key=os.getenv("OPENROUTER_API_KEY", "dummy-key-for-local-testing"),
 )
 
 # Define the model variable
