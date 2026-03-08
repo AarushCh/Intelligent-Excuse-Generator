@@ -40,8 +40,10 @@ async function callApi(endpoint, body = null) {
     }
 
     try {
-        const res = await fetch(`${API_BASE}${endpoint} `, options);
-        if (!res.ok) { throw new Error(`HTTP error! status: ${res.status} `); }
+        const url = new URL(`${API_BASE}${endpoint}`, window.location.origin);
+        if (options.method === "GET") url.searchParams.append("_t", Date.now());
+        const res = await fetch(url.toString(), options);
+        if (!res.ok) { throw new Error(`HTTP error! status: ${res.status}`); }
         return await res.json();
     } catch (err) {
         console.error(`API Error(${endpoint}): `, err);
