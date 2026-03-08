@@ -375,11 +375,11 @@ function toggleBox(id, btn) {
     if (!isVisible) {
         target.classList.remove('hidden');
 
-        // Refresh Data
-        if (id.includes('history')) id.includes('apol') ? loadApologyHistory() : loadHistory();
-        else if (id.includes('fav')) id.includes('apol') ? loadApologyFavorites() : loadFavorites();
-        else if (id.includes('rank') || id.includes('Top')) id.includes('apol') ? loadTopApologies() : loadRankings();
-        else if (id.includes('cal')) id.includes('apol') ? loadApologyCalendar() : loadCalendar();
+        const lowerId = id.toLowerCase();
+        if (lowerId.includes('history')) lowerId.includes('apol') ? loadApologyHistory() : loadHistory();
+        else if (lowerId.includes('fav')) lowerId.includes('apol') ? loadApologyFavorites() : loadFavorites();
+        else if (lowerId.includes('rank') || lowerId.includes('top')) lowerId.includes('apol') ? loadTopApologies() : loadRankings();
+        else if (lowerId.includes('cal')) lowerId.includes('apol') ? loadApologyCalendar() : loadCalendar();
     }
 }
 
