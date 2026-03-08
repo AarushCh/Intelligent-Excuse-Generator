@@ -193,12 +193,19 @@ async function completeApology(btnElement) {
 
 async function showGuiltScore() {
     const text = document.getElementById('apologyOut').innerText;
-    if (!text) return showToast("No apology found.", "error");
+    if (!text || text === 'Your thoughtful apology will manifest here...') return showToast("No apology found.", "error");
+
+    const tab = document.getElementById('guiltMeterTab');
+    const tabText = document.getElementById('guiltMeterText');
+
+    tab.classList.remove('hidden');
+    tabText.innerText = "🧠 Analyzing Guilt Level...";
+
     const data = await callApi('/api/guilt-score', { text });
     if (data && data.feedback) {
-        showToast(`🧠 Guilt Level:\n\n${data.feedback}`, "info");
+        tabText.innerHTML = `<strong>🧠 Guilt Level:</strong> ${data.feedback.replace('Guilt Level: ', '')}`;
     } else {
-        showToast("Error analyzing text.", "error");
+        tabText.innerText = "🧠 Error analyzing text.";
     }
 }
 

@@ -654,9 +654,14 @@ def complete_apology(payload: dict = Body(...)):
     except Exception as e:
         return {"error": str(e)}
 
+guilt_cache = {}
+
 @app.post("/api/guilt-score")
 def api_guilt_score(payload: dict = Body(...)):
     text = payload.get("text", "")
+    if text in guilt_cache:
+        return {"feedback": guilt_cache[text]}
+        
     rubric = (
         "Calibrate on this rubric:\n"
         "  1‑20  : clearly insincere / no guilt\n"
@@ -699,7 +704,10 @@ def api_guilt_score(payload: dict = Body(...)):
             m = re.search(r'"score"\s*:\s*(\d+).*"reason"\s*:\s*"([^"]+)', raw, re.S)
             if not m: return {"error": "Bad format from model", "raw": raw}
             data = {"score": int(m.group(1)), "reason": m.group(2)}
-        return {"feedback": f'{data["score"]}/100 – {data["reason"]}'}
+            
+        feedback = f'{data["score"]}/100 – {data["reason"]}'
+        guilt_cache[text] = feedback
+        return {"feedback": feedback}
     except Exception as e:
         return {"error": str(e)}
 
