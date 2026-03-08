@@ -241,10 +241,49 @@ async function loadList(endpoint, elementId, isHistory = false) {
         if (elementId.includes('rankings') || elementId.includes('Top')) {
             return `<li><span class="count-badge">🧠${item.score || 0}</span> ${["🥇", "🥈", "🥉"][idx] || "🎖"} ${item.text}</li>`;
         }
+
+        let removalEndpoint = "";
+        if (elementId === 'favoritesBoxList') removalEndpoint = '/api/favorite';
+        if (elementId === 'apologyFavoritesBoxList') removalEndpoint = '/api/apology-favorite';
+
+        if (!isHistory && removalEndpoint) {
+            const escapedText = item.replace(/'/g, "&apos;").replace(/"/g, "&quot;");
+            return `<li style="display:flex; justify-content:space-between; align-items:flex-start;">
+                <span>${item}</span>
+                <button class="btn-action" style="padding:4px 8px; font-size:0.8rem; margin-left:10px;" onclick="removeFavorite('${removalEndpoint}', '${escapedText}', this)"><i class="fa-solid fa-trash"></i></button>
+            </li>`;
+        }
+
         return isHistory
             ? `<li><strong>${item.time}</strong><br>${item.text}</li>`
             : `<li>${item}</li>`;
     }).join("");
+}
+
+async function removeFavorite(endpoint, text, btnElement) {
+    // Optimistic UI removal
+    const li = btnElement.closest('li');
+    if (li) li.style.display = 'none';
+
+    const options = {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text })
+    };
+
+    try {
+        const res = await fetch(`${API_BASE}${endpoint}`, options);
+        if (res.ok) {
+            showToast("Removed from favorites", "success");
+            if (li) li.remove();
+        } else {
+            showToast("Failed to remove item", "error");
+            if (li) li.style.display = 'flex'; // Restore if failed
+        }
+    } catch {
+        showToast("Network error removing item", "error");
+        if (li) li.style.display = 'flex'; // Restore if failed
+    }
 }
 
 // Short wrappers for specific lists
@@ -274,13 +313,20 @@ function saveApologyToAllSystems(text) {
     callApi('/api/update-latest-apology', { text });
 }
 
-function saveFavorite(type = 'excuse') {
+function saveFavorite(type = 'excuse', btnElement) {
     const endpoint = type === 'excuse' ? '/api/favorite' : '/api/apology-favorite';
-    callApi(endpoint, {}).then(d => d && showToast(d.message, "success"));
+    callApi(endpoint, {}).then(d => {
+        if (d) {
+            showToast(d.message, "success");
+            if (btnElement) {
+                btnElement.innerHTML = `<i class="fa-solid fa-heart" style="color:var(--primary);"></i>`;
+            }
+        }
+    });
 }
 
 // Explicit wrappers for HTML buttons
-function saveApologyFavorite() { saveFavorite('apology'); }
+function saveApologyFavorite(btnElement) { saveFavorite('apology', btnElement); }
 function clearTopExcuses() { if (confirm("Erase?")) callApi('/api/clear-rankings', {}).then(() => { loadRankings(); showToast("Excuses cleared.", "info"); }); }
 function clearTopApologies() { if (confirm("Erase?")) callApi('/api/clear-apology-rankings', {}).then(() => { loadTopApologies(); showToast("Apologies cleared.", "info"); }); }
 
@@ -359,23 +405,43 @@ function copyToClipboard(elementId, btnElement) {
     const textTarget = document.getElementById(elementId);
     if (!textTarget || textTarget.classList.contains('placeholder')) return showToast("Nothing to copy!", "error");
 
-    // Use regex to strip any html tags like <strong> or <br> when copying
     const plainText = textTarget.innerHTML.replace(/<br\s*[\/]?>/gi, '\n').replace(/<[^>]*>?/gm, '').trim();
 
-    navigator.clipboard.writeText(plainText).then(() => {
+    const finishCopy = () => {
         const originalHTML = btnElement.innerHTML;
         btnElement.innerHTML = `<i class="fa-solid fa-check"></i> Copied`;
         btnElement.style.color = "var(--primary)";
         btnElement.style.borderColor = "var(--primary)";
-
         showToast("Copied to clipboard!", "success");
-
         setTimeout(() => {
             btnElement.innerHTML = originalHTML;
             btnElement.style.color = "";
             btnElement.style.borderColor = "";
         }, 2000);
-    });
+    };
+
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(plainText).then(finishCopy).catch(() => fallbackCopyTextToClipboard(plainText, finishCopy));
+    } else {
+        fallbackCopyTextToClipboard(plainText, finishCopy);
+    }
+}
+
+function fallbackCopyTextToClipboard(text, successCallback) {
+    let textArea = document.createElement("textarea");
+    textArea.value = text;
+    textArea.style.position = "fixed";  // Avoid scrolling to bottom
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    try {
+        var successful = document.execCommand('copy');
+        if (successful) successCallback();
+        else showToast("Copy failed in your browser.", "error");
+    } catch (err) {
+        showToast("Copy not supported.", "error");
+    }
+    document.body.removeChild(textArea);
 }
 
 function collectDestinations() {

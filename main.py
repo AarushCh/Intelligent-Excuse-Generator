@@ -313,6 +313,22 @@ def api_add_excuse_fav():
         pass
     return {"message": "✅ Excuse added to favourites!"}
 
+@app.delete("/api/favorite")
+def api_remove_excuse_fav(payload: dict):
+    text = payload.get("text", "")
+    if text in favorite_excuses:
+        favorite_excuses.remove(text)
+        try:
+            with open(EXCUSE_SCORE_FILE, "r+", encoding="utf-8") as fh:
+                scores = json.load(fh)
+                if text in scores:
+                    scores[text]["favorited"] = False
+                fh.seek(0); fh.truncate(); json.dump(scores, fh, indent=2)
+        except Exception:
+            pass
+        return {"message": "🗑️ Removed from favorites"}
+    return {"message": "Item not found in favorites."}
+
 def trigger_emergency_internal(recipient_override: dict | None = None):
     excuse  = open("latest_excuse.txt", "r", encoding="utf-8").read().strip() if os.path.exists("latest_excuse.txt") else "No excuse."
     apology = open("latest_apology.txt", "r", encoding="utf-8").read().strip() if os.path.exists("latest_apology.txt") else "No apology."
@@ -431,8 +447,24 @@ def api_save_apology_fav():
             scores[latest_text]["favorited"] = True
             fh.seek(0); fh.truncate(); json.dump(scores, fh, indent=2)
     except Exception as e:
-        print("⚠️ Failed to update score:", e)
+        pass
     return {"message": "✅ Apology added to favourites!"}
+
+@app.delete("/api/apology-favorite")
+def api_remove_apology_fav(payload: dict):
+    text = payload.get("text", "")
+    if text in favorite_apologies:
+        favorite_apologies.remove(text)
+        try:
+            with open(APOLOGY_SCORE_FILE, "r+", encoding="utf-8") as fh:
+                scores = json.load(fh)
+                if text in scores:
+                    scores[text]["favorited"] = False
+                fh.seek(0); fh.truncate(); json.dump(scores, fh, indent=2)
+        except Exception:
+            pass
+        return {"message": "🗑️ Removed from favorites"}
+    return {"message": "Item not found in favorites."}
 
 @app.get("/api/apology-favorites")
 def api_get_apology_favorites():

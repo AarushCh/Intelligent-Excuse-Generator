@@ -38,6 +38,7 @@ Rules:
 - Avoid anything imaginary or exaggerated.
 - Keep it short and polite.
 - One or two sentences only.
+- CRITICAL: Return ONLY the excuse text itself. Do not include quotes, conversational filler, or explanations of why it works.
 """
     else:
         prompt = f"""
@@ -50,6 +51,7 @@ Rules:
 - Be witty, dramatic or unusual, but still make some sense.
 - Can include exaggeration or humor.
 - One or two sentences only.
+- CRITICAL: Return ONLY the excuse text itself. Do not include quotes, conversational filler, or explanations of why it works.
 """
 
     try:
@@ -86,7 +88,7 @@ Rules:
 
 
 def generate_apology(context, tone, type, style, language="en"):
-    prompt = f"Write a {type.lower()} apology in a {tone.lower()} tone and {style.lower()} style. Context: {context}"
+    prompt = f"Write a {type.lower()} apology in a {tone.lower()} tone and {style.lower()} style. Context: {context}. CRITICAL: Return ONLY the apology text itself. Do not include quotes, conversational filler, or any introductory/concluding explanations."
 
     try:
         response = client.chat.completions.create(
