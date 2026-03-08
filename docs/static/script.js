@@ -104,7 +104,7 @@ async function getExcuse() {
     const data = await callApi('/api/excuse', els);
 
     if (data) {
-        document.getElementById('excuseOut').innerHTML = `< strong > ${new Date().toLocaleString()}</strong > <br>${data.english}`;
+        document.getElementById('excuseOut').innerHTML = `<strong>${new Date().toLocaleString()}</strong><br>${data.english}`;
         const trans = document.getElementById('translatedOut');
         if (trans) trans.innerText = els.language !== "en" ? "Translation: " + data.translated : "";
         showToast("Excuse generated successfully!", "success");
@@ -322,7 +322,7 @@ function toggleDarkModeSwitch() {
     localStorage.setItem("darkMode", isDark ? "enabled" : "disabled");
 
     const lbl = document.getElementById("themeLabel");
-    if (lbl) lbl.textContent = isDark ? "🌙 Dark Mode" : "🌞 Light Mode";
+    if (lbl) lbl.textContent = isDark ? "Dark Mode" : "Light Mode";
 
     const vid = document.getElementById("video-source");
     const vidWebm = document.getElementById("video-source-webm");
@@ -351,6 +351,30 @@ function handleScenarioInput() {
                 suggest.style.display = 'none';
             }
         });
+    });
+}
+
+// --- 9. CLIPBOARD LOGIC ---
+function copyToClipboard(elementId, btnElement) {
+    const textTarget = document.getElementById(elementId);
+    if (!textTarget || textTarget.classList.contains('placeholder')) return showToast("Nothing to copy!", "error");
+
+    // Use regex to strip any html tags like <strong> or <br> when copying
+    const plainText = textTarget.innerHTML.replace(/<br\s*[\/]?>/gi, '\n').replace(/<[^>]*>?/gm, '').trim();
+
+    navigator.clipboard.writeText(plainText).then(() => {
+        const originalHTML = btnElement.innerHTML;
+        btnElement.innerHTML = `<i class="fa-solid fa-check"></i> Copied`;
+        btnElement.style.color = "var(--primary)";
+        btnElement.style.borderColor = "var(--primary)";
+
+        showToast("Copied to clipboard!", "success");
+
+        setTimeout(() => {
+            btnElement.innerHTML = originalHTML;
+            btnElement.style.color = "";
+            btnElement.style.borderColor = "";
+        }, 2000);
     });
 }
 
