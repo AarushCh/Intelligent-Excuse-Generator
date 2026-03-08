@@ -338,8 +338,8 @@ function saveFavorite(type = 'excuse', btnElement) {
 function saveApologyFavorite(btnElement) { saveFavorite('apology', btnElement); }
 function clearTopExcuses() { if (confirm("Erase?")) callApi('/api/clear-rankings', {}).then(() => { loadRankings(); showToast("Excuses cleared.", "info"); }); }
 function clearTopApologies() { if (confirm("Erase?")) callApi('/api/clear-apology-rankings', {}).then(() => { loadTopApologies(); showToast("Apologies cleared.", "info"); }); }
-function clearFavorites() { if (confirm("Erase all favorites?")) callApi('/api/clear-favorites', {}).then(() => { loadFavorites(); showToast("Favorites cleared.", "info"); }); }
-function clearApologyFavorites() { if (confirm("Erase all favorite apologies?")) callApi('/api/clear-apology-favorites', {}).then(() => { loadApologyFavorites(); showToast("Favorites cleared.", "info"); }); }
+function clearFavorites() { if (confirm("Erase all favorites?")) callApi('/api/clear-favorites', {}).then(d => { if (d) { loadFavorites(); showToast("Favorites cleared.", "info"); } else showToast("Failed to clear.", "error"); }); }
+function clearApologyFavorites() { if (confirm("Erase all favorite apologies?")) callApi('/api/clear-apology-favorites', {}).then(d => { if (d) { loadApologyFavorites(); showToast("Favorites cleared.", "info"); } else showToast("Failed to clear.", "error"); }); }
 
 function playVoice(targetId) {
     const text = document.getElementById(targetId)?.innerText;
