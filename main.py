@@ -72,9 +72,17 @@ client = OpenAI(
 MODEL_NAME = "nvidia/nemotron-nano-12b-v2-vl:free"
 
 # ============ FastAPI & CORS ============
-app = FastAPI()
+from contextlib import asynccontextmanager
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Start scheduler only after Uvicorn forks the main process
+    scheduler.start()
+    yield
+    scheduler.shutdown()
+
+app = FastAPI(lifespan=lifespan)
 scheduler = BackgroundScheduler()
-scheduler.start()
 
 # --- CRITICAL: CORS FOR GITHUB PAGES ---
 app.add_middleware(
