@@ -345,6 +345,17 @@ def api_remove_excuse_fav(payload: DeleteFavoritePayload):
         return {"message": "🗑️ Removed from favorites"}
     return {"message": "Item not found in favorites."}
 
+@app.post("/api/clear-favorites")
+def api_clear_favorites():
+    favorite_excuses.clear()
+    try:
+        with open(EXCUSE_SCORE_FILE, "r+", encoding="utf-8") as fh:
+            scores = json.load(fh)
+            for k in scores: scores[k]["favorited"] = False
+            fh.seek(0); fh.truncate(); json.dump(scores, fh, indent=2)
+    except Exception: pass
+    return {"status": "cleared"}
+
 def trigger_emergency_internal(recipient_override: dict | None = None):
     excuse  = open("latest_excuse.txt", "r", encoding="utf-8").read().strip() if os.path.exists("latest_excuse.txt") else "No excuse."
     apology = open("latest_apology.txt", "r", encoding="utf-8").read().strip() if os.path.exists("latest_apology.txt") else "No apology."
@@ -489,6 +500,17 @@ def api_remove_apology_fav(payload: DeleteFavoritePayload):
             pass
         return {"message": "🗑️ Removed from favorites"}
     return {"message": "Item not found in favorites."}
+
+@app.post("/api/clear-apology-favorites")
+def api_clear_apology_favorites():
+    favorite_apologies.clear()
+    try:
+        with open(APOLOGY_SCORE_FILE, "r+", encoding="utf-8") as fh:
+            scores = json.load(fh)
+            for k in scores: scores[k]["favorited"] = False
+            fh.seek(0); fh.truncate(); json.dump(scores, fh, indent=2)
+    except Exception: pass
+    return {"status": "cleared"}
 
 @app.get("/api/apology-favorites")
 def api_get_apology_favorites():

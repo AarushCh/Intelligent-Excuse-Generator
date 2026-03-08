@@ -251,8 +251,8 @@ async function loadList(endpoint, elementId, isHistory = false) {
         }
 
         let removalEndpoint = "";
-        if (elementId === 'favoritesBoxList') removalEndpoint = '/api/favorite';
-        if (elementId === 'apologyFavoritesBoxList') removalEndpoint = '/api/apology-favorite';
+        if (elementId === 'favoritesList') removalEndpoint = '/api/favorite';
+        if (elementId === 'apolFavoritesList') removalEndpoint = '/api/apology-favorite';
 
         if (!isHistory && removalEndpoint) {
             const escapedText = item.replace(/'/g, "&apos;").replace(/"/g, "&quot;");
@@ -295,11 +295,12 @@ async function removeFavorite(endpoint, text, btnElement) {
 }
 
 // Short wrappers for specific lists
+// Short wrappers for specific lists
 const loadHistory = () => loadList('/api/history', 'historyList', true);
 const loadFavorites = () => loadList('/api/favorites', 'favoritesList');
 const loadRankings = () => loadList('/api/rankings', 'rankingsList');
 const loadApologyHistory = () => loadList('/api/apology-history', 'apolHistoryList', true);
-const loadApologyFavorites = () => loadList('/api/apology-favorites', 'apolFavList');
+const loadApologyFavorites = () => loadList('/api/apology-favorites', 'apolFavoritesList');
 const loadTopApologies = () => loadList('/api/top-apologies', 'apolTopList');
 
 // Calendars need special formatting
@@ -337,6 +338,8 @@ function saveFavorite(type = 'excuse', btnElement) {
 function saveApologyFavorite(btnElement) { saveFavorite('apology', btnElement); }
 function clearTopExcuses() { if (confirm("Erase?")) callApi('/api/clear-rankings', {}).then(() => { loadRankings(); showToast("Excuses cleared.", "info"); }); }
 function clearTopApologies() { if (confirm("Erase?")) callApi('/api/clear-apology-rankings', {}).then(() => { loadTopApologies(); showToast("Apologies cleared.", "info"); }); }
+function clearFavorites() { if (confirm("Erase all favorites?")) callApi('/api/clear-favorites', {}).then(() => { loadFavorites(); showToast("Favorites cleared.", "info"); }); }
+function clearApologyFavorites() { if (confirm("Erase all favorite apologies?")) callApi('/api/clear-apology-favorites', {}).then(() => { loadApologyFavorites(); showToast("Favorites cleared.", "info"); }); }
 
 function playVoice(targetId) {
     const text = document.getElementById(targetId)?.innerText;

@@ -16,7 +16,7 @@
   <!-- FontAwesome for robust premium icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-  <link rel="stylesheet" href="static/style.css?v=2.3">
+  <link rel="stylesheet" href="static/style.css?v=2.4">
 </head>
 
 <body>
@@ -150,7 +150,11 @@
           <ul id="historyList"></ul>
         </div>
         <div id="favoritesBox" class="toggle-box hidden">
-          <h4><i class="fa-solid fa-star"></i> Favourites</h4>
+          <div class="flex-bw">
+            <h4><i class="fa-solid fa-star"></i> Favourites</h4>
+            <button class="btn-icon danger" onclick="clearFavorites()" title="Clear Favorites"><i
+                class="fa-solid fa-trash"></i></button>
+          </div>
           <ul id="favoritesList"></ul>
         </div>
         <div id="calendarBox" class="toggle-box hidden">
@@ -273,9 +277,13 @@
           <h4><i class="fa-solid fa-clock-rotate-left"></i> Apology History</h4>
           <ul id="apolHistoryList"></ul>
         </div>
-        <div id="apolFavBox" class="toggle-box hidden">
-          <h4><i class="fa-solid fa-star"></i> Favourite Apologies</h4>
-          <ul id="apolFavList"></ul>
+        <div id="apolFavoritesBox" class="toggle-box hidden">
+          <div class="flex-bw">
+            <h4><i class="fa-solid fa-star"></i> Favourites</h4>
+            <button class="btn-icon danger" onclick="clearApologyFavorites()" title="Clear Favorites"><i
+                class="fa-solid fa-trash"></i></button>
+          </div>
+          <ul id="apolFavoritesList"></ul>
         </div>
         <div id="apolCalBox" class="toggle-box hidden">
           <h4><i class="fa-solid fa-calendar-days"></i> Apology Calendar</h4>
@@ -368,7 +376,7 @@
   <p class="proof-timestamp" id="timestamp"></p>
   <audio id="clickSound" src="static/click.mp3" preload="auto"></audio>
 
-  <script src="static/script.js?v=2.3"></script>
+  <script src="static/script.js?v=2.4"></script>
 </body>
 
 </html>
