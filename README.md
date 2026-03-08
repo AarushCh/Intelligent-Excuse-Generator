@@ -1,12 +1,3 @@
----
-title: Intelligent Excuse Generator
-emoji: 🎭
-colorFrom: red
-colorTo: blue
-sdk: docker
-app_port: 7860
-pinned: false
----
 # **🧠 Intelligent Excuse Generator & Emergency Alert System**
 
 ## 🔗 Live Website
