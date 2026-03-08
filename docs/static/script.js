@@ -1,7 +1,7 @@
 // --- CONFIGURATION ---
-const API_BASE = (window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost")
+const API_BASE = (window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost" || window.location.protocol === "file:")
     ? "http://127.0.0.1:8000"
-    : "https://aarushch-intelligent-excuse-generator.hf.space";
+    : "https://auc6-intelligent-excuse-generator.hf.space";
 
 // --- 1. TOAST NOTIFICATIONS (Replaces native alerts) ---
 function showToast(message, type = 'info') {
@@ -13,7 +13,7 @@ function showToast(message, type = 'info') {
     }
 
     const toast = document.createElement('div');
-    toast.className = `toast toast-${type}`;
+    toast.className = `toast toast - ${type} `;
     toast.innerHTML = message;
 
     toastContainer.appendChild(toast);
@@ -40,11 +40,11 @@ async function callApi(endpoint, body = null) {
     }
 
     try {
-        const res = await fetch(`${API_BASE}${endpoint}`, options);
-        if (!res.ok) { throw new Error(`HTTP error! status: ${res.status}`); }
+        const res = await fetch(`${API_BASE}${endpoint} `, options);
+        if (!res.ok) { throw new Error(`HTTP error! status: ${res.status} `); }
         return await res.json();
     } catch (err) {
-        console.error(`API Error (${endpoint}):`, err);
+        console.error(`API Error(${endpoint}): `, err);
         return null;
     }
 }
@@ -54,10 +54,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // Inject required styles for JS animations and toasts
     const style = document.createElement('style');
     style.textContent = `
-    .screenshot-loading { opacity: 0.7; pointer-events: none; }
-    /* Toast Styles */
-    #toast-container { position: fixed; bottom: 30px; right: 30px; z-index: 9999; display: flex; flex-direction: column; gap: 12px; }
-  `;
+    .screenshot - loading { opacity: 0.7; pointer - events: none; }
+/* Toast Styles */
+#toast - container { position: fixed; bottom: 30px; right: 30px; z - index: 9999; display: flex; flex - direction: column; gap: 12px; }
+`;
     document.head.appendChild(style);
 
     // Load Theme
@@ -104,7 +104,7 @@ async function getExcuse() {
     const data = await callApi('/api/excuse', els);
 
     if (data) {
-        document.getElementById('excuseOut').innerHTML = `<strong>${new Date().toLocaleString()}</strong><br>${data.english}`;
+        document.getElementById('excuseOut').innerHTML = `< strong > ${new Date().toLocaleString()}</strong > <br>${data.english}`;
         const trans = document.getElementById('translatedOut');
         if (trans) trans.innerText = els.language !== "en" ? "Translation: " + data.translated : "";
         showToast("Excuse generated successfully!", "success");
