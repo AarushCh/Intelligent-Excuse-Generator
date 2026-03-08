@@ -82,7 +82,8 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:8000",
         "http://127.0.0.1:8000",
-        "https://aarushch.github.io"  # YOUR GITHUB PAGES URL
+        "https://aarushch.github.io",  # YOUR GITHUB PAGES URL
+        "https://aarushch-intelligent-excuse-generator.hf.space"  # YOUR HUGGING FACE URL
     ],
     allow_credentials=True,
     allow_methods=["*"],
