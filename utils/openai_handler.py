@@ -18,11 +18,26 @@ def strip_reasoning(text: str) -> str:
     """Strips <think> or <thought> blocks from the model's output."""
     if not text:
         return text
-    # Remove XML blocks entirely
     cleaned = re.sub(r'<(think|thought)>.*?</\1>', '', text, flags=re.DOTALL)
-    # Remove any stray unclosed tags if present
     cleaned = re.sub(r'<(think|thought)>.*', '', cleaned, flags=re.DOTALL)
     return cleaned.strip()
+
+def clean_llm_text(text: str) -> str:
+    """Forcefully extracts the actual text if the LLM includes conversational filler."""
+    text = text.strip()
+    # If the LLM quoted the actual output, extract it
+    match = re.search(r'"([^"]{10,})"', text)
+    if match:
+        return match.group(1).strip()
+    
+    # Otherwise strip typical annoying prefixes
+    text = re.sub(r'^(Here is.*?:\s*)', '', text, flags=re.IGNORECASE)
+    # If there are newlines, it often puts the excuse on the first line and explains it on the next
+    lines = [L for L in text.split('\n') if L.strip()]
+    if len(lines) > 1 and len(lines[0]) > 10:
+        return lines[0].strip().replace('"', '')
+        
+    return text.replace('"', '').strip()
 
 def generate_excuse(scenario, urgency, language="en", style="professional"):
     # 1. Preserve original Prompt Branching
@@ -62,7 +77,7 @@ Rules:
             temperature=0.7,
             extra_body={"reasoning": {"enabled": True}}
         )
-        base_text = strip_reasoning(response.choices[0].message.content)
+        base_text = clean_llm_text(strip_reasoning(response.choices[0].message.content))
     except Exception as e:
         print("❌ Error generating excuse:", e)
         base_text = "Something went wrong while generating your excuse."
@@ -97,7 +112,7 @@ def generate_apology(context, tone, type, style, language="en"):
             temperature=0.7,
             extra_body={"reasoning": {"enabled": True}}
         )
-        base_message = strip_reasoning(response.choices[0].message.content)
+        base_message = clean_llm_text(strip_reasoning(response.choices[0].message.content))
     except Exception as e:
         print("❌ OpenAI error during apology:", e)
         base_message = "Sorry, something went wrong generating the apology."

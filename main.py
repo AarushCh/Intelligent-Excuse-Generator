@@ -111,7 +111,10 @@ class ApologyInput(BaseModel):
     tone: str
     type: str
     style: str
-    language: str
+    language: str = "en"
+
+class DeleteFavoritePayload(BaseModel):
+    text: str
 
 class EmergencyInput(BaseModel):
     email: Optional[str] = None
@@ -301,21 +304,34 @@ def api_excuse_favorites():
 @app.post("/api/favorite")
 def api_add_excuse_fav():
     global latest_text, latest_label
-    if not latest_text or latest_label != "Excuse": return {"message": "⚠️ Already in favourites or nothing to add."}
-    if latest_text in favorite_excuses: return {"message": "⚠️ Already in favourites or nothing to add."}
+    if not latest_text or latest_label != "Excuse": return {"action": "error", "message": "⚠️ No excuse to save."}
+    
+    if latest_text in favorite_excuses:
+        favorite_excuses.remove(latest_text)
+        try:
+            with open(EXCUSE_SCORE_FILE, "r+", encoding="utf-8") as fh:
+                scores = json.load(fh)
+                if latest_text in scores:
+                    scores[latest_text]["favorited"] = False
+                fh.seek(0); fh.truncate(); json.dump(scores, fh, indent=2)
+        except Exception: pass
+        return {"action": "removed", "message": "🗑️ Unfavorited!"}
+        
     favorite_excuses.append(latest_text)
     try:
         with open(EXCUSE_SCORE_FILE, "r+", encoding="utf-8") as fh:
-            scores = json.load(fh)
-            scores.setdefault(latest_text, {}).update({"favorited": True})
+            try: scores = json.load(fh)
+            except: scores = {}
+            scores.setdefault(latest_text, {"count": 0, "urgency_score": 0})
+            scores[latest_text]["favorited"] = True
             fh.seek(0); fh.truncate(); json.dump(scores, fh, indent=2)
     except Exception:
         pass
-    return {"message": "✅ Excuse added to favourites!"}
+    return {"action": "added", "message": "✅ Saved!"}
 
 @app.delete("/api/favorite")
-def api_remove_excuse_fav(payload: dict):
-    text = payload.get("text", "")
+def api_remove_excuse_fav(payload: DeleteFavoritePayload):
+    text = payload.text
     if text in favorite_excuses:
         favorite_excuses.remove(text)
         try:
@@ -434,25 +450,33 @@ def api_apology_calendar():
 @app.post("/api/apology-favorite")
 def api_save_apology_fav():
     global latest_text, latest_label
-    if not latest_text or latest_label != "Apology": return {"message": "⚠️ No apology to save."}
-    if latest_text in favorite_apologies: return {"message": "⚠️ Already in favourites."}
+    if not latest_text or latest_label != "Apology": return {"action": "error", "message": "⚠️ No apology to save."}
+    
+    if latest_text in favorite_apologies:
+        favorite_apologies.remove(latest_text)
+        try:
+            with open(APOLOGY_SCORE_FILE, "r+", encoding="utf-8") as fh:
+                scores = json.load(fh)
+                if latest_text in scores: scores[latest_text]["favorited"] = False
+                fh.seek(0); fh.truncate(); json.dump(scores, fh, indent=2)
+        except Exception: pass
+        return {"action": "removed", "message": "🗑️ Unfavorited!"}
+        
     favorite_apologies.append(latest_text)
     try:
         with open(APOLOGY_SCORE_FILE, "r+", encoding="utf-8") as fh:
-            try:
-                scores = json.load(fh)
-            except:
-                scores = {}
+            try: scores = json.load(fh)
+            except: scores = {}
             scores.setdefault(latest_text, {"count": 0, "favorited": False})
             scores[latest_text]["favorited"] = True
             fh.seek(0); fh.truncate(); json.dump(scores, fh, indent=2)
     except Exception as e:
         pass
-    return {"message": "✅ Apology added to favourites!"}
+    return {"action": "added", "message": "✅ Saved!"}
 
 @app.delete("/api/apology-favorite")
-def api_remove_apology_fav(payload: dict):
-    text = payload.get("text", "")
+def api_remove_apology_fav(payload: DeleteFavoritePayload):
+    text = payload.text
     if text in favorite_apologies:
         favorite_apologies.remove(text)
         try:

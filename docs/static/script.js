@@ -104,7 +104,9 @@ async function getExcuse() {
     const data = await callApi('/api/excuse', els);
 
     if (data) {
-        document.getElementById('excuseOut').innerHTML = `<strong>${new Date().toLocaleString()}</strong><br>${data.english}`;
+        const out = document.getElementById('excuseOut');
+        out.classList.remove('placeholder');
+        out.innerHTML = `<strong>${new Date().toLocaleString()}</strong><br>${data.english}`;
         const trans = document.getElementById('translatedOut');
         if (trans) trans.innerText = els.language !== "en" ? "Translation: " + data.translated : "";
         showToast("Excuse generated successfully!", "success");
@@ -127,7 +129,9 @@ async function generateApology() {
 
     const data = await callApi('/api/apology', body);
     if (data) {
-        document.getElementById('apologyOut').innerHTML = `<strong>${new Date().toLocaleString()}</strong><br>${data.message}`;
+        const out = document.getElementById('apologyOut');
+        out.classList.remove('placeholder');
+        out.innerHTML = `<strong>${new Date().toLocaleString()}</strong><br>${data.message}`;
         showToast("Apology generated successfully!", "success");
     } else {
         showToast("Backend connection failed.", "error");
@@ -148,7 +152,9 @@ async function applyTone() {
 
     const data = await callApi('/api/adjust-tone', { tone, sentence });
     if (data?.adjusted) {
-        document.getElementById("apologyOut").innerHTML = `<strong>${new Date().toLocaleString()}</strong><br>${data.adjusted}`;
+        const out = document.getElementById("apologyOut");
+        out.classList.remove('placeholder');
+        out.innerHTML = `<strong>${new Date().toLocaleString()}</strong><br>${data.adjusted}`;
         saveApologyToAllSystems(data.adjusted);
         showToast("Tone adjusted successfully!", "success");
     } else {
@@ -165,7 +171,9 @@ async function completeApology() {
 
     const data = await callApi('/api/complete-apology', { start, tone });
     if (data?.completed) {
-        document.getElementById("apologyOut").innerHTML = `<strong>${new Date().toLocaleString()}</strong><br>${data.completed}`;
+        const out = document.getElementById("apologyOut")
+        out.classList.remove('placeholder');
+        out.innerHTML = `<strong>${new Date().toLocaleString()}</strong><br>${data.completed}`;
         saveApologyToAllSystems(data.completed);
         showToast("Apology completed successfully!", "success");
     } else {
