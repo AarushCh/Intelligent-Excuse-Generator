@@ -255,10 +255,10 @@ async function loadList(endpoint, elementId, isHistory = false) {
         if (elementId === 'apolFavoritesList') removalEndpoint = '/api/apology-favorite';
 
         if (!isHistory && removalEndpoint) {
-            const escapedText = item.replace(/'/g, "&apos;").replace(/"/g, "&quot;");
+            const jsEscaped = item.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;').replace(/\n/g, '\\n');
             return `<li style="display:flex; justify-content:space-between; align-items:flex-start;">
                 <span>${item}</span>
-                <button class="btn-action" style="padding:4px 8px; font-size:0.8rem; margin-left:10px;" onclick="removeFavorite('${removalEndpoint}', '${escapedText}', this)"><i class="fa-solid fa-trash"></i></button>
+                <button class="btn-action" style="padding:4px 8px; font-size:0.8rem; margin-left:10px;" onclick="removeFavorite('${removalEndpoint}', '${jsEscaped}', this)"><i class="fa-solid fa-trash"></i></button>
             </li>`;
         }
 
