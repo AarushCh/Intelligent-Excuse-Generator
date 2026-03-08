@@ -595,6 +595,11 @@ def adjust_tone(payload: dict = Body(...)):
     prompt = f"Rephrase the following text in a {tone.lower()} tone:\n\n{sentence}\n\nDo not add any extra commentary, timestamps, or headings."
     
     try:
+        # Import the secure client
+        import utils.openai_handler as openai_handler
+        client = openai_handler.client
+        MODEL_NAME = openai_handler.MODEL_NAME
+        
         # Using OpenRouter + Nemotron with Reasoning
         res = client.chat.completions.create(
             model=MODEL_NAME,
@@ -619,6 +624,11 @@ def complete_apology(payload: dict = Body(...)):
     prompt = f"Complete this sentence in a {tone.lower()} apology tone:\n\n{start}"
     
     try:
+        # Import the secure client
+        import utils.openai_handler as openai_handler
+        client = openai_handler.client
+        MODEL_NAME = openai_handler.MODEL_NAME
+        
         # Using OpenRouter + Nemotron with Reasoning
         res = client.chat.completions.create(
             model=MODEL_NAME,
@@ -627,7 +637,7 @@ def complete_apology(payload: dict = Body(...)):
             extra_body={"reasoning": {"enabled": True}}
         )
         # 1) Import strip_reasoning to clean the output BEFORE treating it as logic
-        from utils.openai_handler import strip_reasoning
+        strip_reasoning = openai_handler.strip_reasoning
         continuation = strip_reasoning(res.choices[0].message.content)
         
         # Helper to avoid doubling up words
@@ -670,6 +680,11 @@ def api_guilt_score(payload: dict = Body(...)):
         "----\nNow respond:"
     )
     try:
+        # Import the secure client
+        import utils.openai_handler as openai_handler
+        client = openai_handler.client
+        MODEL_NAME = openai_handler.MODEL_NAME
+        
         # Using OpenRouter + Nemotron with Reasoning
         res = client.chat.completions.create(
             model=MODEL_NAME,
@@ -679,7 +694,7 @@ def api_guilt_score(payload: dict = Body(...)):
             extra_body={"reasoning": {"enabled": True}}
         )
         # Import strip_reasoning to strip <think> tokens before doing regex or JSON parsing
-        from utils.openai_handler import strip_reasoning
+        strip_reasoning = openai_handler.strip_reasoning
         raw = strip_reasoning(res.choices[0].message.content)
         
         import re
