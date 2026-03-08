@@ -176,16 +176,7 @@ def render_screenshot_html(main_text, label, theme):
         <div style='position: absolute; bottom: 18px; right: 24px; font-size: 12px; opacity: 0.6;'>Generated on {datetime.now().strftime('%Y-%m-%d')}</div>
     </div>
     """
-    api_url = 'https://hcti.io/v1/image'
-    try:
-        response = requests.post(api_url, data={'html': html, 'css': '', 'google_fonts': 'Inter:700;Rajdhani:700'}, auth=(HCTI_API_USER, HCTI_API_KEY))
-        if response.status_code != 200:
-            raise HTTPException(status_code=500, detail="Screenshot generation failed (HCTI): " + response.text)
-        image_url = response.json()["url"]
-        image_bytes = requests.get(image_url).content
-        return Response(image_bytes, media_type="image/png")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Screenshot generation failed: {str(e)}")
+    return html
 
 # ============ Main Routes ============
 
@@ -561,11 +552,12 @@ def api_clear_excuse_rankings():
     return {"message": "Smart rankings cleared."}
 
 @app.post("/api/screenshot-excuse")
-def screenshot_excuse():
+def screenshot_excuse(payload: dict = Body(None)):
     try:
         if not latest_excuse: return {"error": "No excuse available to screenshot."}
-        html = render_screenshot_html(latest_excuse, "Excuse", "light") # Defaulting to light theme
-        res = requests.post("https://hcti.io/v1/image", data={"html": html}, auth=(HCTI_API_USER, HCTI_API_KEY))
+        theme = payload.get("theme", "light") if payload else "light"
+        html = render_screenshot_html(latest_excuse, "Excuse", theme)
+        res = requests.post("https://hcti.io/v1/image", data={'html': html, 'css': '', 'google_fonts': 'Inter:700;Rajdhani:700'}, auth=(HCTI_API_USER, HCTI_API_KEY))
         link = res.json().get("url", "")
         return {"url": link}
     except Exception as e:
@@ -573,11 +565,12 @@ def screenshot_excuse():
         return {"error": str(e)}
 
 @app.post("/api/screenshot-apology")
-def screenshot_apology():
+def screenshot_apology(payload: dict = Body(None)):
     try:
         if not latest_apology: return {"error": "No apology available to screenshot."}
-        html = render_screenshot_html(latest_apology, "Apology", "light")
-        res = requests.post("https://hcti.io/v1/image", data={"html": html}, auth=(HCTI_API_USER, HCTI_API_KEY))
+        theme = payload.get("theme", "light") if payload else "light"
+        html = render_screenshot_html(latest_apology, "Apology", theme)
+        res = requests.post("https://hcti.io/v1/image", data={'html': html, 'css': '', 'google_fonts': 'Inter:700;Rajdhani:700'}, auth=(HCTI_API_USER, HCTI_API_KEY))
         link = res.json().get("url", "")
         return {"url": link}
     except Exception as e:

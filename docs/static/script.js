@@ -142,12 +142,12 @@ async function generateApology() {
 
 // --- 5. TONE & COMPLETION ---
 
-async function applyTone() {
+async function applyTone(btnElement) {
     const tone = document.getElementById("adjustTone").value;
     const sentence = document.getElementById("apologyOut").innerText;
     if (!tone || !sentence) return showToast("Generate an apology first.", "error");
 
-    const btn = event.currentTarget || event.target.closest('button');
+    const btn = btnElement || (event.currentTarget || event.target.closest('button'));
     const originalHTML = btn.innerHTML;
     btn.innerHTML = "<i class='fa-solid fa-hourglass-half'></i> Adjusting...";
     btn.disabled = true;
@@ -166,12 +166,12 @@ async function applyTone() {
     btn.disabled = false;
 }
 
-async function completeApology() {
+async function completeApology(btnElement) {
     const start = document.getElementById("startApology").value;
     const tone = document.getElementById("adjustTone").value || "formal";
     if (!start) return showToast("Enter start text.", "error");
 
-    const btn = event.currentTarget || event.target.closest('button');
+    const btn = btnElement || (event.currentTarget || event.target.closest('button'));
     const originalHTML = btn.innerHTML;
     btn.innerHTML = "<i class='fa-solid fa-hourglass-half'></i> Completing...";
     btn.disabled = true;
