@@ -14,7 +14,8 @@ WORKDIR $HOME/app
 
 # Copy the dependency list and install them as the user
 COPY --chown=user:user requirements.txt .
-RUN pip install --no-cache-dir --user -r requirements.txt
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir --user -r requirements.txt
 
 # Copy all the project files into the image and set ownership
 COPY --chown=user:user . .
