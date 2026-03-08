@@ -147,9 +147,9 @@ async function applyTone() {
     const sentence = document.getElementById("apologyOut").innerText;
     if (!tone || !sentence) return showToast("Generate an apology first.", "error");
 
-    const btn = event.target;
-    const original = btn.innerText;
-    btn.innerText = "⏳ Adjusting...";
+    const btn = event.currentTarget || event.target.closest('button');
+    const originalHTML = btn.innerHTML;
+    btn.innerHTML = "<i class='fa-solid fa-hourglass-half'></i> Adjusting...";
     btn.disabled = true;
 
     const data = await callApi('/api/adjust-tone', { tone, sentence });
@@ -162,7 +162,7 @@ async function applyTone() {
     } else {
         showToast("Failed to adjust tone.", "error");
     }
-    btn.innerText = original;
+    btn.innerHTML = originalHTML;
     btn.disabled = false;
 }
 
@@ -170,6 +170,11 @@ async function completeApology() {
     const start = document.getElementById("startApology").value;
     const tone = document.getElementById("adjustTone").value || "formal";
     if (!start) return showToast("Enter start text.", "error");
+
+    const btn = event.currentTarget || event.target.closest('button');
+    const originalHTML = btn.innerHTML;
+    btn.innerHTML = "<i class='fa-solid fa-hourglass-half'></i> Completing...";
+    btn.disabled = true;
 
     const data = await callApi('/api/complete-apology', { start, tone });
     if (data?.completed) {
@@ -181,6 +186,9 @@ async function completeApology() {
     } else {
         showToast("Failed to complete apology.", "error");
     }
+
+    btn.innerHTML = originalHTML;
+    btn.disabled = false;
 }
 
 async function showGuiltScore() {

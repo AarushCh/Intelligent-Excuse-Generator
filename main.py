@@ -621,7 +621,7 @@ def complete_apology(payload: dict = Body(...)):
     tone = payload.get("tone", "formal").strip()
     if not start: return {"error": "No start provided"}
     
-    prompt = f"Complete this sentence in a {tone.lower()} apology tone:\n\n{start}"
+    prompt = f"Complete this sentence in a {tone.lower()} apology tone:\n\n{start}\n\nCRITICAL: Return ONLY the completion text itself. Do not include quotes, conversational filler, or explanations of why it works."
     
     try:
         # Import the secure client
@@ -636,9 +636,10 @@ def complete_apology(payload: dict = Body(...)):
             temperature=0.7,
             extra_body={"reasoning": {"enabled": True}}
         )
-        # 1) Import strip_reasoning to clean the output BEFORE treating it as logic
+        # 1) Import strip_reasoning and clean_llm_text to clean the output BEFORE treating it as logic
         strip_reasoning = openai_handler.strip_reasoning
-        continuation = strip_reasoning(res.choices[0].message.content)
+        clean_llm_text = openai_handler.clean_llm_text
+        continuation = clean_llm_text(strip_reasoning(res.choices[0].message.content))
         
         # Helper to avoid doubling up words
         def normalize(text): return re.sub(r'[^\w\s]', '', text).lower().strip()
