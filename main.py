@@ -33,6 +33,7 @@ HCTI_API_KEY     = os.getenv("HCTI_API_KEY")
 EMAIL_USERNAME   = os.getenv("EMAIL_USERNAME")
 EMAIL_PASSWORD   = os.getenv("EMAIL_PASSWORD")
 EMAIL_RECIPIENTS = os.getenv("EMAIL_RECIPIENTS")
+RESEND_API_KEY   = os.getenv("RESEND_API_KEY")
 
 required = ["OPENROUTER_API_KEY", "HCTI_API_USER", "HCTI_API_KEY"]
 if not OPENROUTER_API_KEY:
@@ -371,6 +372,30 @@ def trigger_emergency_internal(recipient_override: dict | None = None):
             with open(shot, "rb") as fh:
                 msg.add_attachment(fh.read(), maintype="image", subtype="png", filename="proof.png")
         try:
+            # Bypass SMTP firewalls on HF using an HTTP REST API provider if Key exists
+            if RESEND_API_KEY:
+                import base64
+                import requests
+                headers = {"Authorization": f"Bearer {RESEND_API_KEY}", "Content-Type": "application/json"}
+                payload = {
+                    "from": "Emergency Alerts <onboarding@resend.dev>",
+                    "to": recipients,
+                    "subject": msg["Subject"],
+                    "text": f"📝 Excuse:\n{excuse}\n\n🙏 Apology:\n{apology}"
+                }
+                if os.path.exists(shot):
+                    with open(shot, "rb") as fh:
+                        b64_img = base64.b64encode(fh.read()).decode("utf-8")
+                        payload["attachments"] = [{"filename": "proof.png", "content": b64_img}]
+                        
+                rsp = requests.post("https://api.resend.com/emails", headers=headers, json=payload, timeout=10)
+                if rsp.status_code >= 400:
+                    print(f"❌ Resend API Error ({rsp.status_code}):", rsp.text)
+                else:
+                    print("✅ Email sent successfully via Resend API!")
+                return
+                
+            # If no API key, fallback to standard SMTP
             import smtplib
             try:
                 with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=5) as smtp:
@@ -381,6 +406,7 @@ def trigger_emergency_internal(recipient_override: dict | None = None):
                     smtp.starttls()
                     smtp.login(EMAIL_SENDER, EMAIL_PASSWORD)
                     smtp.send_message(msg)
+                    
         except Exception as e:
             err = str(e)
             if "Network is unreachable" in err or "101" in err:
