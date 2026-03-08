@@ -32,177 +32,232 @@
     <div id="themeLabel" class="theme-switch-label">🌞 Light Mode</div>
   </div>
 
-  <div class="container">
-    <div class="typewriter-wrap">
+  <div class="container main-dashboard">
+    <div class="header-wrap">
       <h2 class="cyber-title effect-title">Intelligent Excuse Generator</h2>
+      <p class="subtitle">Generate the perfect excuse or apology. Powered by NVIDIA Nemotron.</p>
     </div>
 
-    <!-- EXCUSE FORM -->
-    <label for="scenario">Scenario:</label>
-    <input id="scenario" placeholder="Type your excuse scenario here…" />
-    <ul id="memorySuggest"
-      style="display:none;margin:4px 0 8px;padding:6px 10px;background:#f1f1f1;border-radius:8px;font-size:14px"></ul>
+    <div class="dashboard-grid">
+      <!-- EXCUSE CARD -->
+      <div class="glass-card module-card">
+        <div class="card-header">
+          <h3><span class="emoji-icon">🎭</span> Excuse Generator</h3>
+        </div>
+        <div class="card-body">
+          <div class="input-group">
+            <label for="scenario">Scenario:</label>
+            <input id="scenario" placeholder="e.g., I'm running late for the meeting…" />
+            <ul id="memorySuggest" style="display:none;margin:4px 0 8px;padding:6px 10px;background:rgba(255,255,255,0.7);border-radius:8px;font-size:14px;list-style:none;"></ul>
+          </div>
+      
+          <div class="grid-2-col">
+            <div class="input-group">
+              <label for="urgency">Urgency:</label>
+              <select id="urgency">
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+                <option value="critical">Critical</option>
+              </select>
+            </div>
+            <div class="input-group">
+              <label for="excuseStyle">Style:</label>
+              <select id="excuseStyle">
+                <option value="professional">Professional</option>
+                <option value="creative">Creative</option>
+              </select>
+            </div>
+          </div>
+      
+          <div class="input-group">
+            <label for="language">Output Language:</label>
+            <select id="language">
+              <option value="en">English</option>
+              <option value="hi">Hindi</option>
+              <option value="fr">French</option>
+              <option value="es">Spanish</option>
+              <option value="de">German</option>
+            </select>
+          </div>
+      
+          <button class="primary-btn pulse-glow" onclick="getExcuse()">
+            <span class="btn-icon">⚡</span> Generate Excuse
+          </button>
+      
+          <div class="output-container">
+            <p id="excuseOut" class="generated-text placeholder">Your excuse will appear here...</p>
+            <p id="translatedOut" class="translated-text"></p>
+            <div class="output-actions">
+              <button class="action-btn small-btn" onclick="playVoice()">🔊 Speak</button>
+              <button class="action-btn small-btn" onclick="saveFavorite()">❤️ Save</button>
+            </div>
+          </div>
+      
+          <div class="toggle-btns compact-toggles">
+            <button class="circle-btn" title="History" onclick="toggleBox('historyBox',this)">📜</button>
+            <button class="circle-btn" title="Favorites" onclick="toggleBox('favoritesBox',this)">⭐</button>
+            <button class="circle-btn" title="Calendar" onclick="toggleBox('calendarBox',this)">📅</button>
+            <button class="circle-btn" title="Rankings" onclick="toggleBox('rankingsBox',this)">🏆</button>
+          </div>
+      
+          <div id="historyBox" class="toggle-box hidden">
+            <h4>📜 History</h4>
+            <ul id="historyList"></ul>
+          </div>
+          <div id="favoritesBox" class="toggle-box hidden">
+            <h4>⭐ Favourites</h4>
+            <ul id="favoritesList"></ul>
+          </div>
+          <div id="calendarBox" class="toggle-box hidden">
+            <h4>📅 Excuse Calendar</h4>
+            <ul id="calendarList"></ul>
+          </div>
+          <div id="rankingsBox" class="toggle-box hidden">
+            <h4 class="flex-bw">
+              <span>🏆 Top Excuses</span>
+              <button class="icon-btn-small erase-btn" onclick="clearTopExcuses()" title="Clear">🗑️</button>
+            </h4>
+            <ul id="rankingsList"></ul>
+          </div>
+        </div>
+      </div>
 
-    <label for="urgency">Urgency:</label>
-    <select id="urgency">
-      <option value="low">Low</option>
-      <option value="medium">Medium</option>
-      <option value="high">High</option>
-      <option value="critical">Critical</option>
-    </select>
+      <!-- APOLOGY CARD -->
+      <div class="glass-card module-card">
+        <div class="card-header">
+          <h3><span class="emoji-icon">🙏</span> Apology Generator</h3>
+        </div>
+        <div class="card-body">
+          <div class="input-group">
+            <label for="apologyContext">Context:</label>
+            <input id="apologyContext" placeholder="e.g., I forgot my friend's birthday" />
+          </div>
+      
+          <div class="grid-2-col">
+            <div class="input-group">
+              <label for="tone">Tone:</label>
+              <select id="tone">
+                <option>Emotional</option>
+                <option>Formal</option>
+                <option>Casual</option>
+              </select>
+            </div>
+            <div class="input-group">
+              <label for="messageType">Length:</label>
+              <select id="messageType">
+                <option>Short</option>
+                <option>Long</option>
+              </select>
+            </div>
+          </div>
+      
+          <div class="input-group">
+            <label for="apologyStyle">Style:</label>
+            <select id="apologyStyle">
+              <option>Regular</option>
+              <option>Guilt Tripping</option>
+            </select>
+          </div>
+      
+          <div class="btn-group-row">
+            <button class="primary-btn secondary-glow" onclick="generateApology()">
+              <span class="btn-icon">💡</span> Generate Apology
+            </button>
+            <button class="secondary-btn" onclick="showGuiltScore()">🧠 Guilt Meter</button>
+          </div>
+      
+          <div class="output-container">
+            <p id="apologyOut" class="generated-text placeholder">Your apology will appear here...</p>
+            <div class="output-actions">
+              <button class="action-btn small-btn" onclick="playApologyVoice()">🔊 Speak</button>
+              <button class="action-btn small-btn" onclick="saveApologyFavorite()">❤️ Save</button>
+            </div>
+          </div>
+          
+          <div class="advanced-tools-accordion">
+            <div class="tool-section">
+              <label for="adjustTone" class="small-label">Adjust Tone:</label>
+              <div class="inline-input-row">
+                <select id="adjustTone">
+                  <option value="">Pick tone…</option>
+                  <option value="empathetic">Empathetic</option>
+                  <option value="firm">Firm</option>
+                  <option value="formal">Formal</option>
+                  <option value="casual">Casual</option>
+                </select>
+                <button class="tertiary-btn" onclick="applyTone()">🎯 Adjust</button>
+              </div>
+            </div>
+            
+            <div class="tool-section">
+              <label for="startApology" class="small-label">Auto-Complete Instead:</label>
+              <div class="inline-input-row">
+                <input id="startApology" placeholder="Sorry I missed it…" />
+                <button class="tertiary-btn" onclick="completeApology()">🤖 Finish</button>
+              </div>
+            </div>
+          </div>
+      
+          <div class="toggle-btns compact-toggles">
+            <button class="circle-btn" title="History" onclick="toggleBox('apolHistoryBox',this)">📜</button>
+            <button class="circle-btn" title="Favorites" onclick="toggleBox('apolFavBox',this)">⭐</button>
+            <button class="circle-btn" title="Calendar" onclick="toggleBox('apolCalBox',this)">📅</button>
+            <button class="circle-btn" title="Rankings" onclick="toggleBox('apolTopBox',this)">🏆</button>
+          </div>
+      
+          <div id="apolHistoryBox" class="toggle-box hidden">
+            <h4>📜 Apology History</h4>
+            <ul id="apolHistoryList"></ul>
+          </div>
+          <div id="apolFavBox" class="toggle-box hidden">
+            <h4>⭐ Favourite Apologies</h4>
+            <ul id="apolFavList"></ul>
+          </div>
+          <div id="apolCalBox" class="toggle-box hidden">
+            <h4>📅 Apology Calendar</h4>
+            <ul id="apolCalList"></ul>
+          </div>
+          <div id="apolTopBox" class="toggle-box hidden">
+            <h4 class="flex-bw">
+              <span>🏆 Top Apologies</span>
+              <button class="icon-btn-small erase-btn" onclick="clearTopApologies()" title="Clear">🗑️</button>
+            </h4>
+            <ul id="apolTopList"></ul>
+          </div>
+        </div>
+      </div>
+    </div> <!-- End Grid -->
 
-    <label for="excuseStyle">Excuse Style:</label>
-    <select id="excuseStyle">
-      <option value="professional">Professional</option>
-      <option value="creative">Creative</option>
-    </select>
+    <!-- EMERGENCY & EXPORT TOOLS -->
+    <div class="tools-grid mt-4">
+      <div class="glass-card util-card">
+        <h4><span class="emoji-icon">⏰</span> Schedule Mail</h4>
+        <div class="inline-input-row">
+          <input type="date" id="scheduleDate" class="mini-input" />
+          <input type="time" id="scheduleTime" class="mini-input" />
+        </div>
+        <input id="scheduleRecipients" placeholder="Recipients (a@b.com, c@d.com)" class="full-width-input" />
+        <button class="secondary-btn full-width" onclick="scheduleEmergency()">Schedule</button>
+      </div>
+      
+      <div class="glass-card util-card emergency-zone">
+        <h4><span class="emoji-icon">🚨</span> EMERGENCY ALERT</h4>
+        <input id="recipientEmail" placeholder="Recipients (a@b.com, c@d.com)" class="full-width-input" />
+        <button class="danger-btn full-width pulse-danger" onclick="triggerEmergency()">TRIGGER ALERT</button>
+      </div>
 
-    <label for="language">Output Language:</label>
-    <select id="language">
-      <option value="en">English</option>
-      <option value="hi">Hindi</option>
-      <option value="fr">French</option>
-      <option value="es">Spanish</option>
-      <option value="de">German</option>
-    </select>
-
-    <button class="teal action-btn" onclick="getExcuse()">Generate Excuse</button>
-    <p id="excuseOut"></p>
-    <p id="translatedOut"></p>
-    <button class="teal action-btn" onclick="playVoice()">🔊 Speak</button>
-
-    <div class="toggle-btns">
-      <button class="round-toggle" onclick="toggleBox('historyBox',this)">📜</button>
-      <button class="round-toggle" onclick="toggleBox('favoritesBox',this)">⭐</button>
-      <button class="round-toggle" onclick="saveFavorite()">❤️</button>
-      <button class="round-toggle" onclick="toggleBox('calendarBox',this)">📅</button>
-      <button class="round-toggle" onclick="toggleBox('rankingsBox',this)">🏆</button>
+      <div class="glass-card util-card snapshot-zone">
+        <h4><span class="emoji-icon">📸</span> Export Proof</h4>
+        <div class="btn-group-row">
+          <button id="btnExcuseShot" class="tertiary-btn line-btn" onclick="generateScreenshot('excuse')">Excuse Image</button>
+          <button id="btnApologyShot" class="tertiary-btn line-btn" onclick="generateScreenshot('apology')">Apology Image</button>
+        </div>
+        <img id="proofImg" style="display:none;margin:15px auto;max-width:100%;border-radius:8px;box-shadow:0 8px 16px rgba(0,0,0,0.2);" />
+        <button id="downloadBtn" class="success-btn full-width" style="display:none;">Download Image</button>
+      </div>
     </div>
-
-    <div id="historyBox" class="toggle-box">
-      <h4>📜 History</h4>
-      <ul id="historyList"></ul>
-    </div>
-    <div id="favoritesBox" class="toggle-box">
-      <h4>⭐ Favourites</h4>
-      <ul id="favoritesList"></ul>
-    </div>
-    <div id="calendarBox" class="toggle-box">
-      <h4>📅 Excuse Calendar</h4>
-      <ul id="calendarList"></ul>
-    </div>
-    <div id="rankingsBox" class="toggle-box">
-      <h4 style="display:flex;justify-content:space-between;align-items:center;margin:0">
-        <span>🏆 Top Excuses (AI Rankings)</span>
-        <button class="small-round-btn" onclick="clearTopExcuses()" title="Clear">🗑️</button>
-      </h4>
-      <ul id="rankingsList"></ul>
-    </div>
-
-    <hr />
-
-    <!-- APOLOGY FORM -->
-    <label for="apologyContext">Apology context:</label>
-    <input id="apologyContext" placeholder="e.g., I forgot my friend's birthday" />
-
-    <label for="tone">Tone:</label>
-    <select id="tone">
-      <option>Emotional</option>
-      <option>Formal</option>
-      <option>Casual</option>
-    </select>
-
-    <label for="messageType">Type:</label>
-    <select id="messageType">
-      <option>Short</option>
-      <option>Long</option>
-    </select>
-
-    <label for="apologyStyle">Style:</label>
-    <select id="apologyStyle">
-      <option>Regular</option>
-      <option>Guilt Tripping</option>
-    </select>
-
-    <button class="teal action-btn" onclick="generateApology()">Generate Apology</button>
-    <button class="teal action-btn" onclick="showGuiltScore()">🧠 Guilt Meter</button>
-    <button class="teal action-btn" onclick="playApologyVoice()">🔊 Speak</button>
-
-    <div class="toggle-btns">
-      <button class="round-toggle" onclick="toggleBox('apolHistoryBox',this)">📜</button>
-      <button class="round-toggle" onclick="toggleBox('apolFavBox',this)">⭐</button>
-      <button class="round-toggle" onclick="saveApologyFavorite()">❤️</button>
-      <button class="round-toggle" onclick="toggleBox('apolCalBox',this)">📅</button>
-      <button class="round-toggle" onclick="toggleBox('apolTopBox',this)">🏆</button>
-    </div>
-    <p id="apologyOut"></p>
-
-    <div id="apolHistoryBox" class="toggle-box">
-      <h4>📜 Apology History</h4>
-      <ul id="apolHistoryList"></ul>
-    </div>
-    <div id="apolFavBox" class="toggle-box">
-      <h4>⭐ Favourite Apologies</h4>
-      <ul id="apolFavList"></ul>
-    </div>
-    <div id="apolCalBox" class="toggle-box">
-      <h4>📅 Apology Calendar</h4>
-      <ul id="apolCalList"></ul>
-    </div>
-    <div id="apolTopBox" class="toggle-box">
-      <h4 style="display:flex;justify-content:space-between;align-items:center;margin:0">
-        <span>🏆 Top Apologies (AI Rankings)</span>
-        <button class="small-round-btn" onclick="clearTopApologies()" title="Clear">🗑️</button>
-      </h4>
-      <ul id="apolTopList"></ul>
-    </div>
-
-    <div style="margin-top: 20px">
-      <label for="adjustTone">Adjust Tone:</label>
-      <select id="adjustTone">
-        <option value="">Pick tone…</option>
-        <option value="empathetic">Empathetic</option>
-        <option value="firm">Firm</option>
-        <option value="formal">Formal</option>
-        <option value="casual">Casual</option>
-      </select>
-      <button class="teal action-btn" onclick="applyTone()">🎯 Adjust Tone</button>
-    </div>
-
-    <div style="margin-top: 12px">
-      <label for="startApology">Start Apology:</label>
-      <input id="startApology" placeholder="e.g., Sorry I missed it…" />
-      <button class="teal action-btn" onclick="completeApology()">🤖 Auto‑Complete</button>
-    </div>
-    <hr />
-
-    <h4>📅 Schedule Mail</h4>
-    <label for="scheduleDate">Date:</label><input type="date" id="scheduleDate" />
-    <label for="scheduleTime">Time:</label><input type="time" id="scheduleTime" />
-    <label for="scheduleRecipients">Recipients (optional):</label>
-    <input id="scheduleRecipients" placeholder="a@b.com, c@d.com" />
-    <button class="teal action-btn" onclick="scheduleEmergency()">⏰ Schedule</button>
-
-    <hr />
-
-    <label for="recipientEmail">E‑Mail Recipients:</label>
-    <input id="recipientEmail" placeholder="a@b.com, c@d.com" />
-    <button class="teal action-btn" onclick="triggerEmergency()">🚨 EMERGENCY</button>
-
-    <hr />
-
-    <div style="display: flex; justify-content: center; gap: 10px; margin-top: 16px;">
-      <button id="btnExcuseShot" class="teal action-btn" onclick="generateScreenshot('excuse')">📸 Screenshot
-        Excuse</button>
-      <button id="btnApologyShot" class="teal action-btn" onclick="generateScreenshot('apology')">📸 Screenshot
-        Apology</button>
-    </div>
-
-    <img id="proofImg"
-      style="display:none;margin:10px auto;max-width:90%;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.2);" />
-    <button id="downloadBtn" class="teal action-btn" style="display:none;">Download Image</button>
-
-  </div>
+    </div> <!-- End Main Container -->
 
   <img class="proof-logo" src="static/images/logo.png" alt="logo" />
   <p class="proof-watermark">Ch Aarush Udbhav</p>

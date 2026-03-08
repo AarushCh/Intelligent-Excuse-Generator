@@ -1,4 +1,5 @@
 import os
+import re
 from openai import OpenAI
 from dotenv import load_dotenv
 
@@ -12,6 +13,16 @@ client = OpenAI(
 
 # Define the model variable
 MODEL_NAME = "nvidia/nemotron-nano-12b-v2-vl:free"
+
+def strip_reasoning(text: str) -> str:
+    """Strips <think> or <thought> blocks from the model's output."""
+    if not text:
+        return text
+    # Remove XML blocks entirely
+    cleaned = re.sub(r'<(think|thought)>.*?</\1>', '', text, flags=re.DOTALL)
+    # Remove any stray unclosed tags if present
+    cleaned = re.sub(r'<(think|thought)>.*', '', cleaned, flags=re.DOTALL)
+    return cleaned.strip()
 
 def generate_excuse(scenario, urgency, language="en", style="professional"):
     # 1. Preserve original Prompt Branching
@@ -49,7 +60,7 @@ Rules:
             temperature=0.7,
             extra_body={"reasoning": {"enabled": True}}
         )
-        base_text = response.choices[0].message.content.strip()
+        base_text = strip_reasoning(response.choices[0].message.content)
     except Exception as e:
         print("❌ Error generating excuse:", e)
         base_text = "Something went wrong while generating your excuse."
@@ -84,7 +95,7 @@ def generate_apology(context, tone, type, style, language="en"):
             temperature=0.7,
             extra_body={"reasoning": {"enabled": True}}
         )
-        base_message = response.choices[0].message.content.strip()
+        base_message = strip_reasoning(response.choices[0].message.content)
     except Exception as e:
         print("❌ OpenAI error during apology:", e)
         base_message = "Sorry, something went wrong generating the apology."
@@ -99,7 +110,7 @@ def generate_apology(context, tone, type, style, language="en"):
                 temperature=0.7,
                 extra_body={"reasoning": {"enabled": True}}
             )
-            translated = trans_response.choices[0].message.content.strip()
+            translated = strip_reasoning(trans_response.choices[0].message.content)
         except Exception as e:
             print("❌ Translation error:", e)
             translated = "Translation failed."
@@ -122,7 +133,7 @@ def adjust_tone(text, tone):
             temperature=0.7,
             extra_body={"reasoning": {"enabled": True}}
         )
-        return response.choices[0].message.content.strip()
+        return strip_reasoning(response.choices[0].message.content)
     except Exception as e:
         print("❌ Tone Adjust Error:", e)
         return "Failed to adjust tone."
@@ -138,7 +149,7 @@ def autocomplete_text(prompt):
             temperature=0.7,
             extra_body={"reasoning": {"enabled": True}}
         )
-        return response.choices[0].message.content.strip()
+        return strip_reasoning(response.choices[0].message.content)
     except Exception as e:
         print("❌ AutoComplete Error:", e)
         return "Failed to complete text."

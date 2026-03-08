@@ -1,7 +1,35 @@
 // --- CONFIGURATION ---
-const API_BASE = "https://intelligent-excuse-generator-xqx0.onrender.com";
+const API_BASE = "https://aarushch-intelligent-excuse-generator.hf.space";
 
-// --- 1. CENTRALIZED API CALLER (The Fix for "Failed to generate") ---
+// --- 1. TOAST NOTIFICATIONS (Replaces native alerts) ---
+function showToast(message, type = 'info') {
+    let toastContainer = document.getElementById('toast-container');
+    if (!toastContainer) {
+        toastContainer = document.createElement('div');
+        toastContainer.id = 'toast-container';
+        document.body.appendChild(toastContainer);
+    }
+
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.innerHTML = message;
+
+    toastContainer.appendChild(toast);
+
+    setTimeout(() => {
+        toast.classList.add('show');
+    }, 10);
+
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}
+
+// Override native alert globally for minimal refactoring
+window.alert = (msg) => showToast(msg, 'info');
+
+// --- 2. CENTRALIZED API CALLER ---
 async function callApi(endpoint, body = null) {
     const options = { headers: { "Content-Type": "application/json" } };
     if (body) {
@@ -10,8 +38,8 @@ async function callApi(endpoint, body = null) {
     }
 
     try {
-        // This automatically connects to Render for every request
         const res = await fetch(`${API_BASE}${endpoint}`, options);
+        if (!res.ok) { throw new Error(`HTTP error! status: ${res.status}`); }
         return await res.json();
     } catch (err) {
         console.error(`API Error (${endpoint}):`, err);
@@ -19,9 +47,9 @@ async function callApi(endpoint, body = null) {
     }
 }
 
-// --- 2. INITIALIZATION ---
+// --- 3. INITIALIZATION ---
 document.addEventListener('DOMContentLoaded', () => {
-    // Inject required styles for JS animations
+    // Inject required styles for JS animations and toasts
     const style = document.createElement('style');
     style.textContent = `
     .screenshot-loading { opacity: 0.7; pointer-events: none; }
@@ -30,6 +58,13 @@ document.addEventListener('DOMContentLoaded', () => {
     .toggle-box { transition: all 0.3s ease; }
     .fadeSlideIn { animation: fadeIn 0.4s ease-out; }
     @keyframes fadeIn { from{opacity:0;transform:translateY(-10px)} to{opacity:1;transform:translateY(0)} }
+    
+    /* Toast Styles */
+    #toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
+    .toast { background: rgba(0, 0, 0, 0.85); color: #fff; padding: 12px 20px; border-radius: 8px; font-weight: 500; font-size: 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); opacity: 0; transform: translateY(20px); transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .toast-error { background: rgba(220, 53, 69, 0.9); }
+    .toast-success { background: rgba(40, 167, 69, 0.9); }
   `;
     document.head.appendChild(style);
 
@@ -51,7 +86,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (input) input.addEventListener("input", handleScenarioInput);
 });
 
-// --- 3. GENERATORS ---
+// --- 4. GENERATORS ---
 
 async function getExcuse() {
     const els = {
@@ -61,7 +96,7 @@ async function getExcuse() {
         style: document.getElementById('excuseStyle').value
     };
 
-    if (!els.scenario) return alert("Please enter a scenario.");
+    if (!els.scenario) return showToast("Please enter a scenario.", "error");
 
     const data = await callApi('/api/excuse', els);
 
@@ -69,8 +104,10 @@ async function getExcuse() {
         document.getElementById('excuseOut').innerHTML = `<strong>${new Date().toLocaleString()}</strong><br>${data.english}`;
         const trans = document.getElementById('translatedOut');
         if (trans) trans.innerText = els.language !== "en" ? "Translation: " + data.translated : "";
+        showToast("Excuse generated successfully!", "success");
     } else {
         document.getElementById('excuseOut').innerHTML = "❌ Connection failed. Backend offline?";
+        showToast("Backend connection failed.", "error");
     }
 }
 
@@ -83,20 +120,23 @@ async function generateApology() {
         language: document.getElementById('language').value
     };
 
-    if (!body.context) return alert("Please enter context.");
+    if (!body.context) return showToast("Please enter context.", "error");
 
     const data = await callApi('/api/apology', body);
     if (data) {
         document.getElementById('apologyOut').innerHTML = `<strong>${new Date().toLocaleString()}</strong><br>${data.message}`;
+        showToast("Apology generated successfully!", "success");
+    } else {
+        showToast("Backend connection failed.", "error");
     }
 }
 
-// --- 4. TONE & COMPLETION ---
+// --- 5. TONE & COMPLETION ---
 
 async function applyTone() {
     const tone = document.getElementById("adjustTone").value;
     const sentence = document.getElementById("apologyOut").innerText;
-    if (!tone || !sentence) return alert("Generate an apology first.");
+    if (!tone || !sentence) return showToast("Generate an apology first.", "error");
 
     const btn = event.target;
     const original = btn.innerText;
@@ -107,6 +147,9 @@ async function applyTone() {
     if (data?.adjusted) {
         document.getElementById("apologyOut").innerHTML = `<strong>${new Date().toLocaleString()}</strong><br>${data.adjusted}`;
         saveApologyToAllSystems(data.adjusted);
+        showToast("Tone adjusted successfully!", "success");
+    } else {
+        showToast("Failed to adjust tone.", "error");
     }
     btn.innerText = original;
     btn.disabled = false;
@@ -115,27 +158,34 @@ async function applyTone() {
 async function completeApology() {
     const start = document.getElementById("startApology").value;
     const tone = document.getElementById("adjustTone").value || "formal";
-    if (!start) return alert("Enter start text.");
+    if (!start) return showToast("Enter start text.", "error");
 
     const data = await callApi('/api/complete-apology', { start, tone });
     if (data?.completed) {
         document.getElementById("apologyOut").innerHTML = `<strong>${new Date().toLocaleString()}</strong><br>${data.completed}`;
         saveApologyToAllSystems(data.completed);
+        showToast("Apology completed successfully!", "success");
+    } else {
+        showToast("Failed to complete apology.", "error");
     }
 }
 
 async function showGuiltScore() {
     const text = document.getElementById('apologyOut').innerText;
-    if (!text) return alert("No apology found.");
+    if (!text) return showToast("No apology found.", "error");
     const data = await callApi('/api/guilt-score', { text });
-    if (data) alert("🧠 Guilt Level:\n\n" + (data.feedback || "Error analyzing text"));
+    if (data && data.feedback) {
+        showToast(`🧠 Guilt Level:\n\n${data.feedback}`, "info");
+    } else {
+        showToast("Error analyzing text.", "error");
+    }
 }
 
-// --- 5. SCREENSHOTS (Consolidated Logic) ---
+// --- 6. SCREENSHOTS (Consolidated Logic) ---
 
 async function generateScreenshot(type) {
     const btn = event.target;
-    const theme = document.getElementById("screenshotTheme").value;
+    const theme = document.getElementById("screenshotTheme") ? document.getElementById("screenshotTheme").value : (localStorage.getItem("darkMode") === "enabled" ? "dark" : "light");
 
     btn.classList.add("screenshot-loading");
     btn.disabled = true;
@@ -152,6 +202,7 @@ async function generateScreenshot(type) {
 
         dlBtn.onclick = async () => {
             try {
+                showToast("Downloading screenshot...", "info");
                 const blob = await (await fetch(data.url)).blob();
                 const a = document.createElement("a");
                 a.href = URL.createObjectURL(blob);
@@ -159,17 +210,18 @@ async function generateScreenshot(type) {
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
-            } catch (e) { alert("Download failed, try right-clicking image."); }
+            } catch (e) { showToast("Download failed, try right-clicking image.", "error"); }
         };
         window.screenshotUrl = data.url;
+        showToast("Screenshot ready!", "success");
     } else {
-        alert("Screenshot failed.");
+        showToast("Screenshot failed.", "error");
     }
     btn.classList.remove("screenshot-loading");
     btn.disabled = false;
 }
 
-// --- 6. LIST LOADERS (Consolidated Logic) ---
+// --- 7. LIST LOADERS (Consolidated Logic) ---
 
 async function loadList(endpoint, elementId, isHistory = false) {
     const data = await callApi(endpoint);
@@ -212,7 +264,7 @@ function buildCalendar(target, data) {
     target.innerHTML = Object.keys(grouped).map(d => `<h4>${d}</h4><ul>${grouped[d].map(i => `<li><strong>${i.time}</strong> – ${i.text}</li>`).join("")}</ul>`).join("");
 }
 
-// --- 7. UTILITIES (Save, Audio, UI) ---
+// --- 8. UTILITIES (Save, Audio, UI) ---
 
 function saveApologyToAllSystems(text) {
     callApi('/api/save-apology-history', { text, time: new Date().toLocaleString() });
@@ -221,13 +273,13 @@ function saveApologyToAllSystems(text) {
 
 function saveFavorite(type = 'excuse') {
     const endpoint = type === 'excuse' ? '/api/favorite' : '/api/apology-favorite';
-    callApi(endpoint, {}).then(d => d && alert(d.message));
+    callApi(endpoint, {}).then(d => d && showToast(d.message, "success"));
 }
 
 // Explicit wrappers for HTML buttons
 function saveApologyFavorite() { saveFavorite('apology'); }
-function clearTopExcuses() { if (confirm("Erase?")) callApi('/api/clear-rankings', {}).then(loadRankings); }
-function clearTopApologies() { if (confirm("Erase?")) callApi('/api/clear-apology-rankings', {}).then(loadTopApologies); }
+function clearTopExcuses() { if (confirm("Erase?")) callApi('/api/clear-rankings', {}).then(() => { loadRankings(); showToast("Excuses cleared.", "info"); }); }
+function clearTopApologies() { if (confirm("Erase?")) callApi('/api/clear-apology-rankings', {}).then(() => { loadTopApologies(); showToast("Apologies cleared.", "info"); }); }
 
 function playVoice(targetId) {
     const text = document.getElementById(targetId)?.innerText;
@@ -275,8 +327,11 @@ function toggleDarkModeSwitch() {
     if (vid) vid.src = `static/background-${isDark ? 'dark' : 'light'}.mp4`;
     if (vidWebm) vidWebm.src = `static/background-${isDark ? 'dark' : 'light'}.webm`;
 
-    document.getElementById("background-video").load();
-    document.getElementById("screenshotTheme").value = isDark ? "dark" : "light";
+    const bgVid = document.getElementById("background-video");
+    if (bgVid) bgVid.load();
+
+    const themeInput = document.getElementById("screenshotTheme");
+    if (themeInput) themeInput.value = isDark ? "dark" : "light";
 }
 
 function handleScenarioInput() {
@@ -285,7 +340,7 @@ function handleScenarioInput() {
     if (!val) { suggest.style.display = 'none'; return; }
 
     callApi(`/api/memory?q=${encodeURIComponent(val)}`).then(d => {
-        if (!d || !d.matches.length) { suggest.style.display = 'none'; return; }
+        if (!d || !d.matches || !d.matches.length) { suggest.style.display = 'none'; return; }
         suggest.innerHTML = d.matches.map(t => `<li style="cursor:pointer;padding:4px">${t}</li>`).join("");
         suggest.style.display = 'block';
         Array.from(suggest.children).forEach(li => {
@@ -302,12 +357,12 @@ function collectDestinations() {
 }
 
 function triggerEmergency() {
-    callApi('/api/emergency', collectDestinations()).then(() => alert("🚨 Triggered!"));
+    callApi('/api/emergency', collectDestinations()).then(() => showToast("🚨 Emergency Triggered!", "error"));
 }
 
 function scheduleEmergency() {
     const date = document.getElementById('scheduleDate').value;
     const time = document.getElementById('scheduleTime').value;
-    if (!date || !time) return alert("Set date/time");
-    callApi('/api/schedule', { date, time, ...collectDestinations() }).then(d => alert(d.message));
+    if (!date || !time) return showToast("Set date/time", "error");
+    callApi('/api/schedule', { date, time, ...collectDestinations() }).then(d => d && showToast(d.message, "success"));
 }

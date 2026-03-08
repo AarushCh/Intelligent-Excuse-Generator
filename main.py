@@ -342,12 +342,16 @@ def trigger_emergency_internal(recipient_override: dict | None = None):
         # Audio won't play on a server, but we keep the code safe
         try:
             import pygame
-            pygame.mixer.init()
-            # Path must be relative or absolute. static/alert.mp3 needs to exist in repo
-            if os.path.exists("static/alert.mp3"):
-                pygame.mixer.music.load("static/alert.mp3")
-                pygame.mixer.music.set_volume(1.0)
-                pygame.mixer.music.play()
+            # Suppress prompt output by capturing it or avoiding init completely if in headless (HF Spaces typically lacks audio hardware)
+            if not os.environ.get('DISABLE_AUDIO'):
+                pygame.mixer.init()
+                # Path must be relative or absolute. static/alert.mp3 needs to exist in repo
+                if os.path.exists("static/alert.mp3"):
+                    pygame.mixer.music.load("static/alert.mp3")
+                    pygame.mixer.music.set_volume(1.0)
+                    pygame.mixer.music.play()
+        except ImportError:
+            print("⚠️ pygame not installed. Siren disabled.")
         except Exception as e:
             print("❌ Sound error (expected on server):", e)
             
@@ -538,7 +542,9 @@ def complete_apology(payload: dict = Body(...)):
             temperature=0.7,
             extra_body={"reasoning": {"enabled": True}}
         )
-        continuation = res.choices[0].message.content.strip()
+        # 1) Import strip_reasoning to clean the output BEFORE treating it as logic
+        from utils.openai_handler import strip_reasoning
+        continuation = strip_reasoning(res.choices[0].message.content)
         
         # Helper to avoid doubling up words
         def normalize(text): return re.sub(r'[^\w\s]', '', text).lower().strip()
@@ -588,7 +594,10 @@ def api_guilt_score(payload: dict = Body(...)):
             top_p=0.95,
             extra_body={"reasoning": {"enabled": True}}
         )
-        raw = res.choices[0].message.content.strip()
+        # Import strip_reasoning to strip <think> tokens before doing regex or JSON parsing
+        from utils.openai_handler import strip_reasoning
+        raw = strip_reasoning(res.choices[0].message.content)
+        
         import re
         try:
             data = json.loads(raw)
