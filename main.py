@@ -64,11 +64,7 @@ latest_excuse = None
 latest_apology = None
 
 # ========== OpenRouter Client =========
-client = OpenAI(
-  base_url="https://openrouter.ai/api/v1",
-  api_key=OPENROUTER_API_KEY,
-)
-
+# Handling moved to utils.openai_handler.py
 MODEL_NAME = "nvidia/nemotron-nano-12b-v2-vl:free"
 
 # ============ FastAPI & CORS ============
