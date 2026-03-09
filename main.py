@@ -371,6 +371,25 @@ def trigger_emergency_internal(recipient_override: dict | None = None):
             with open(shot, "rb") as fh:
                 msg.add_attachment(fh.read(), maintype="image", subtype="png", filename="proof.png")
         try:
+            # Check for Gmail API Tokens to bypass HF SMTP Blocks (Port 465/587)
+            if os.path.exists("token.json"):
+                from google.oauth2.credentials import Credentials
+                from googleapiclient.discovery import build
+                from googleapiclient.errors import HttpError
+                import base64
+                
+                creds = Credentials.from_authorized_user_file("token.json", ["https://www.googleapis.com/auth/gmail.send"])
+                service = build("gmail", "v1", credentials=creds)
+                
+                # Gmail API requires the standard email message to be url-safe base64 encoded
+                raw_msg = base64.urlsafe_b64encode(msg.as_bytes()).decode()
+                create_message = {"raw": raw_msg}
+                
+                service.users().messages().send(userId="me", body=create_message).execute()
+                print("✅ Email sent successfully via Gmail REST API!")
+                return
+                
+            # Fallback to standard SMTP if tokens are missing
             import smtplib
             try:
                 with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=5) as smtp:
@@ -386,6 +405,7 @@ def trigger_emergency_internal(recipient_override: dict | None = None):
             err = str(e)
             if "Network is unreachable" in err or "101" in err:
                 print("⚠️ Email skipped: Network blocks standard SMTP outgoing ports on this host.")
+                print("💡 Hint: Generate a token.json using auth_gmail.py to bypass this firewall!")
             else:
                 print("❌ Email error:", e)
             
