@@ -814,11 +814,22 @@ body.dark .toggle-box {
 .tools-grid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 30px;
+  gap: 20px;
 }
 
 .tool-card {
-  padding: 35px;
+  padding: 26px 30px;
+}
+
+@media (min-width: 768px) {
+  .tools-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+
+  .danger-card {
+    grid-column: span 2;
+  }
 }
 
 .card-title {
