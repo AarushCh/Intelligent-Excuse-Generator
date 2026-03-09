@@ -33,6 +33,7 @@ HCTI_API_KEY     = os.getenv("HCTI_API_KEY")
 EMAIL_USERNAME   = os.getenv("EMAIL_USERNAME")
 EMAIL_PASSWORD   = os.getenv("EMAIL_PASSWORD")
 EMAIL_RECIPIENTS = os.getenv("EMAIL_RECIPIENTS")
+TOKEN_JSON_CONTENT = os.getenv("TOKEN_JSON_CONTENT")
 
 required = ["OPENROUTER_API_KEY", "HCTI_API_USER", "HCTI_API_KEY"]
 if not OPENROUTER_API_KEY:
@@ -372,13 +373,19 @@ def trigger_emergency_internal(recipient_override: dict | None = None):
                 msg.add_attachment(fh.read(), maintype="image", subtype="png", filename="proof.png")
         try:
             # Check for Gmail API Tokens to bypass HF SMTP Blocks (Port 465/587)
-            if os.path.exists("token.json"):
+            if os.path.exists("token.json") or TOKEN_JSON_CONTENT:
                 from google.oauth2.credentials import Credentials
                 from googleapiclient.discovery import build
                 from googleapiclient.errors import HttpError
                 import base64
+                import json
                 
-                creds = Credentials.from_authorized_user_file("token.json", ["https://www.googleapis.com/auth/gmail.send"])
+                scopes = ["https://www.googleapis.com/auth/gmail.send"]
+                if TOKEN_JSON_CONTENT:
+                    creds_data = json.loads(TOKEN_JSON_CONTENT)
+                    creds = Credentials.from_authorized_user_info(creds_data, scopes)
+                else:
+                    creds = Credentials.from_authorized_user_file("token.json", scopes)
                 service = build("gmail", "v1", credentials=creds)
                 
                 # Gmail API requires the standard email message to be url-safe base64 encoded
