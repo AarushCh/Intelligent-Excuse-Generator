@@ -473,7 +473,10 @@ function fallbackCopyTextToClipboard(text, successCallback) {
 }
 
 function collectDestinations() {
-    return { email: document.getElementById('recipientEmail')?.value || "" };
+    return {
+        email: document.getElementById('recipientEmail')?.value || "",
+        screenshot_url: window.screenshotUrl || null
+    };
 }
 
 function triggerEmergency() {
@@ -484,5 +487,14 @@ function scheduleEmergency() {
     const date = document.getElementById('scheduleDate').value;
     const time = document.getElementById('scheduleTime').value;
     if (!date || !time) return showToast("Set date/time", "error");
-    callApi('/api/schedule', { date, time, ...collectDestinations() }).then(d => d && showToast(d.message, "success"));
+
+    // We construct the payload, spreading destinations (email + screenshot_url)
+    const payload = { date, time, ...collectDestinations() };
+
+    // Use the scheduleEmail UI input if recipientEmail is empty
+    if (!payload.email) {
+        payload.email = document.getElementById('scheduleEmail')?.value || "";
+    }
+
+    callApi('/api/schedule', payload).then(d => d && showToast(d.message, "success"));
 }

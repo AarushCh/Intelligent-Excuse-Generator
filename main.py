@@ -115,11 +115,13 @@ class DeleteFavoritePayload(BaseModel):
 
 class EmergencyInput(BaseModel):
     email: Optional[str] = None
+    screenshot_url: Optional[str] = None
 
 class ScheduleInput(BaseModel):
     date: str
     time: str
     email: Optional[str] = None
+    screenshot_url: Optional[str] = None
 
 class ToneAdjustInput(BaseModel):
     text: str
@@ -344,7 +346,7 @@ def api_clear_favorites():
     except Exception: pass
     return {"status": "cleared"}
 
-def trigger_emergency_internal(recipient_override: dict | None = None):
+def trigger_emergency_internal(recipient_override: dict | None = None, screenshot_url: str | None = None):
     excuse  = open("latest_excuse.txt", "r", encoding="utf-8").read().strip() if os.path.exists("latest_excuse.txt") else "No excuse."
     apology = open("latest_apology.txt", "r", encoding="utf-8").read().strip() if os.path.exists("latest_apology.txt") else "No apology."
     EMAIL_SENDER     = os.getenv("EMAIL_USERNAME")
@@ -369,27 +371,41 @@ def trigger_emergency_internal(recipient_override: dict | None = None):
         try:
             import requests
             
-            # Intelligently decide whether to screenshot the Excuse, the Apology, or both
-            has_excuse = excuse and excuse != "No excuse."
-            has_apology = apology and apology != "No apology."
+            img_data = None
             
-            proof_text = excuse if has_excuse else apology
-            proof_title = "Excuse" if has_excuse else "Apology"
-            if has_excuse and has_apology:
-                proof_text = f"{excuse}\n\n{apology}"
-                proof_title = "Excuse & Apology"
+            # If the frontend explicitly provided the screenshot URL they just generated, use exactly that one!
+            if screenshot_url:
+                try:
+                    img_data = requests.get(screenshot_url, timeout=10).content
+                except Exception as e:
+                    print("⚠️ Failed to download frontend screenshot URL, falling back to autonomous generation:", e)
             
-            html = render_screenshot_html(proof_text, proof_title, "light")
-            res = requests.post(
-                "https://hcti.io/v1/image", 
-                data={'html': html, 'css': '', 'google_fonts': 'Inter:700;Rajdhani:700'}, 
-                auth=(HCTI_API_USER, HCTI_API_KEY),
-                timeout=10
-            )
-            img_url = res.json().get("url")
-            if img_url:
-                img_data = requests.get(img_url, timeout=10).content
+            # If no URL was provided from the frontend, securely rebuild it autonomously
+            if not img_data:
+                # Intelligently decide whether to screenshot the Excuse, the Apology, or both
+                has_excuse = excuse and excuse != "No excuse."
+                has_apology = apology and apology != "No apology."
+                
+                proof_text = excuse if has_excuse else apology
+                proof_title = "Excuse" if has_excuse else "Apology"
+                if has_excuse and has_apology:
+                    proof_text = f"{excuse}\n\n{apology}"
+                    proof_title = "Excuse & Apology"
+                
+                html = render_screenshot_html(proof_text, proof_title, "light")
+                res = requests.post(
+                    "https://hcti.io/v1/image", 
+                    data={'html': html, 'css': '', 'google_fonts': 'Inter:700;Rajdhani:700'}, 
+                    auth=(HCTI_API_USER, HCTI_API_KEY),
+                    timeout=10
+                )
+                img_url = res.json().get("url")
+                if img_url:
+                    img_data = requests.get(img_url, timeout=10).content
+            
+            if img_data:
                 msg.add_attachment(img_data, maintype="image", subtype="png", filename="proof.png")
+                
         except Exception as e:
             print("⚠️ Could not dynamically generate emergency screenshot:", e)
             
@@ -475,7 +491,7 @@ def trigger_emergency_internal(recipient_override: dict | None = None):
 
 @app.post("/api/emergency")
 def api_trigger_emergency(payload: EmergencyInput):
-    trigger_emergency_internal(payload.model_dump())
+    trigger_emergency_internal(payload.model_dump(), screenshot_url=payload.screenshot_url)
     return {"status": "ok"}
 
 @app.get("/api/apology-history")
@@ -795,7 +811,7 @@ def schedule_emergency(input: ScheduleInput):
         scheduler.add_job(
             func=trigger_emergency_internal,
             trigger=DateTrigger(run_date=dt),
-            args=[{"email": input.email}] if input.email else [],
+            args=[{"email": input.email} if input.email else None, input.screenshot_url],
             id=job_id,
             replace_existing=True
         )
