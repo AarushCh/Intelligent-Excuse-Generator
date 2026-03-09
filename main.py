@@ -368,7 +368,18 @@ def trigger_emergency_internal(recipient_override: dict | None = None):
         # Dynamically generate screenshot proof instead of relying on frontend cached files
         try:
             import requests
-            html = render_screenshot_html(excuse, "Excuse", "light")
+            
+            # Intelligently decide whether to screenshot the Excuse, the Apology, or both
+            has_excuse = excuse and excuse != "No excuse."
+            has_apology = apology and apology != "No apology."
+            
+            proof_text = excuse if has_excuse else apology
+            proof_title = "Excuse" if has_excuse else "Apology"
+            if has_excuse and has_apology:
+                proof_text = f"{excuse}\n\n{apology}"
+                proof_title = "Excuse & Apology"
+            
+            html = render_screenshot_html(proof_text, proof_title, "light")
             res = requests.post(
                 "https://hcti.io/v1/image", 
                 data={'html': html, 'css': '', 'google_fonts': 'Inter:700;Rajdhani:700'}, 
