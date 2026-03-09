@@ -365,12 +365,23 @@ def trigger_emergency_internal(recipient_override: dict | None = None):
         msg["From"] = EMAIL_SENDER
         msg["To"] = ", ".join(recipients)
         msg.set_content(f"📝 Excuse:\n{excuse}\n\n🙏 Apology:\n{apology}")
-        # Note: Local file attachment might fail if screenshot wasn't generated recently on this specific server instance
-        # We skip attachment logic if file missing to prevent crash
-        shot = "static/screenshot.png"
-        if os.path.exists(shot):
-            with open(shot, "rb") as fh:
-                msg.add_attachment(fh.read(), maintype="image", subtype="png", filename="proof.png")
+        # Dynamically generate screenshot proof instead of relying on frontend cached files
+        try:
+            import requests
+            html = render_screenshot_html(excuse, "Excuse", "light")
+            res = requests.post(
+                "https://hcti.io/v1/image", 
+                data={'html': html, 'css': '', 'google_fonts': 'Inter:700;Rajdhani:700'}, 
+                auth=(HCTI_API_USER, HCTI_API_KEY),
+                timeout=10
+            )
+            img_url = res.json().get("url")
+            if img_url:
+                img_data = requests.get(img_url, timeout=10).content
+                msg.add_attachment(img_data, maintype="image", subtype="png", filename="proof.png")
+        except Exception as e:
+            print("⚠️ Could not dynamically generate emergency screenshot:", e)
+            
         try:
             # Check for Gmail API Tokens to bypass HF SMTP Blocks (Port 465/587)
             if os.path.exists("token.json") or TOKEN_JSON_CONTENT:
